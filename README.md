@@ -104,13 +104,14 @@ El proyecto incluye scripts listos para usar en Windows:
 
 | Script | Descripción |
 |---|---|
+| `startApp.bat` | **Recomendado**: Inicia backend y frontend en ventanas separadas (cierre automático) |
 | `start.bat` | Inicia backend y frontend juntos en una sola ventana |
 | `backend\start_backend.bat` | Inicia solo el backend (FastAPI en puerto 8000) |
 | `frontend\start_frontend.bat` | Inicia solo el frontend (React en puerto 3000) |
 
 ```bat
-REM Desde el directorio raiz del proyecto:
-start.bat
+REM Desde el directorio raiz del proyecto (lanzador unificado):
+startApp.bat
 
 REM O por separado:
 backend\start_backend.bat
