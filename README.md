@@ -101,7 +101,6 @@ npm install
 ### Opción 1: Scripts `.bat` (Windows — Recomendado)
 
 El proyecto incluye scripts listos para usar en Windows:
-
 | Script | Descripción |
 |---|---|
 | `startApp.bat` | **Recomendado**: Inicia backend y frontend en ventanas separadas (cierre automático) |
