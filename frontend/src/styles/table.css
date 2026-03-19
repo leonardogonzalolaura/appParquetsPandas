@@ -1,0 +1,261 @@
+/* Estilos para tablas con muchas columnas */
+.table-container {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.table-scroll-wrapper {
+  position: relative;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 400px;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  background: white;
+}
+
+.table-scroll-wrapper::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.table-scroll-wrapper::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 4px;
+}
+
+.table-scroll-wrapper::-webkit-scrollbar-thumb {
+  background: #9ca3af;
+  border-radius: 4px;
+}
+
+.table-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* Indicadores de scroll horizontal */
+.scroll-indicator-left,
+.scroll-indicator-right {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 24px;
+  pointer-events: none;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s ease;
+}
+
+.scroll-indicator-left {
+  left: 0;
+  background: linear-gradient(to right, rgba(255, 255, 255, 0.95), transparent);
+}
+
+.scroll-indicator-right {
+  right: 0;
+  background: linear-gradient(to left, rgba(255, 255, 255, 0.95), transparent);
+}
+
+.scroll-indicator-left svg,
+.scroll-indicator-right svg {
+  color: #6b7280;
+  width: 16px;
+  height: 16px;
+}
+
+/* Estilos para tablas con muchas columnas */
+.wide-table {
+  min-width: max-content;
+}
+
+.wide-table th,
+.wide-table td {
+  min-width: 150px;
+  max-width: 300px;
+  border-right: 1px solid #f3f4f6;
+  padding: 0.75rem 1rem;
+}
+
+.wide-table th:last-child,
+.wide-table td:last-child {
+  border-right: none;
+}
+
+.wide-table th {
+  background-color: #f9fafb;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #374151;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.wide-table td {
+  font-size: 0.875rem;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wide-table tr:hover td {
+  background-color: #f9fafb;
+}
+
+/* Controles de tabla */
+.table-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background-color: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.table-controls-left,
+.table-controls-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.table-controls-button {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  background-color: #e5e7eb;
+  border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.table-controls-button:hover {
+  background-color: #d1d5db;
+}
+
+.table-controls-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.table-controls-button.active {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #2563eb;
+}
+
+/* Indicador de columnas ocultas */
+.hidden-columns-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  background-color: #dbeafe;
+  color: #1e40af;
+  border-radius: 9999px;
+  margin-left: 0.5rem;
+}
+
+/* Animación para indicar scroll horizontal */
+.scroll-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+  background-color: #f3f4f6;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .table-scroll-wrapper {
+    max-height: 300px;
+  }
+
+  .wide-table th,
+  .wide-table td {
+    min-width: 120px;
+    max-width: 200px;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .table-controls {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+
+  .table-controls-left,
+  .table-controls-right {
+    justify-content: space-between;
+  }
+}
+
+/* Estilos para celdas con contenido largo */
+.cell-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.cell-expandable {
+  cursor: pointer;
+  position: relative;
+}
+
+.cell-expandable:hover::after {
+  content: "Click para expandir";
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #374151;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+/* Estilos para valores null */
+.null-value {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+/* Estilos para valores JSON */
+.json-value {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.75rem;
+  background-color: #f3f4f6;
+  padding: 2px 4px;
+  border-radius: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

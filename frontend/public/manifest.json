@@ -1,0 +1,147 @@
+{
+  "short_name": "S3 Parquet Explorer",
+  "name": "S3 Parquet Explorer - Explorador de archivos Parquet en AWS S3",
+  "description": "Aplicación web moderna para explorar, visualizar y analizar archivos Parquet en Amazon S3",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#3b82f6",
+  "background_color": "#ffffff",
+  "orientation": "any",
+  "scope": "/",
+  "lang": "es",
+  "categories": ["business", "productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Ver resumen de buckets y archivos",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "icons/dashboard-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Explorador",
+      "short_name": "Explorador",
+      "description": "Navegar buckets y archivos S3",
+      "url": "/explorer",
+      "icons": [
+        {
+          "src": "icons/explorer-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Visor Parquet",
+      "short_name": "Visor",
+      "description": "Visualizar archivos Parquet",
+      "url": "/viewer",
+      "icons": [
+        {
+          "src": "icons/viewer-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshots/dashboard.png",
+      "type": "image/png",
+      "sizes": "1280x720",
+      "form_factor": "wide",
+      "label": "Dashboard principal"
+    },
+    {
+      "src": "screenshots/explorer.png",
+      "type": "image/png",
+      "sizes": "1280x720",
+      "form_factor": "wide",
+      "label": "Explorador de buckets"
+    },
+    {
+      "src": "screenshots/viewer.png",
+      "type": "image/png",
+      "sizes": "1280x720",
+      "form_factor": "wide",
+      "label": "Visor de archivos Parquet"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "protocol_handlers": [
+    {
+      "protocol": "web+s3parquet",
+      "url": "/?uri=%s"
+    }
+  ],
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "launch_handler": {
+    "client_mode": ["auto", "focus-existing", "navigate-new", "navigate-existing"]
+  },
+  "permissions": [
+    "clipboard-write",
+    "clipboard-read"
+  ],
+  "share_target": {
+    "action": "/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "files",
+          "accept": [".parquet", "application/x-parquet"]
+        }
+      ]
+    }
+  },
+  "file_handlers": [
+    {
+      "action": "/viewer",
+      "accept": {
+        "application/x-parquet": [".parquet"]
+      },
+      "icons": [
+        {
+          "src": "icons/parquet-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ],
+      "launch_type": "single-client"
+    }
+  ]
+}

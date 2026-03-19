@@ -1,0 +1,100 @@
+# ============================================================
+# CREDENCIALES Y CONFIGURACION SENSIBLE
+# ============================================================
+# El archivo .env NUNCA debe subirse al repositorio.
+# Usa .env.example como plantilla publica (sin datos reales).
+.env
+*.env.local
+*.env.production
+
+# ============================================================
+# BACKEND - Python / FastAPI
+# ============================================================
+
+# Entorno virtual
+venv/
+.venv/
+env/
+ENV/
+
+# Archivos compilados de Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+
+# Distribucion / empaquetado
+dist/
+build/
+*.egg-info/
+*.egg
+.eggs/
+
+# pytest / coverage
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+
+# mypy / linting
+.mypy_cache/
+.ruff_cache/
+
+# Logs
+*.log
+logs/
+
+# ============================================================
+# FRONTEND - Node.js / React
+# ============================================================
+
+# Dependencias (se reinstalan con npm install)
+node_modules/
+
+# Build de produccion
+frontend/build/
+frontend/dist/
+
+# Cache de herramientas
+.npm
+.eslintcache
+.parcel-cache
+
+# ============================================================
+# SISTEMA OPERATIVO - Windows
+# ============================================================
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS (por si alguien colabora desde Mac)
+.DS_Store
+._*
+
+# ============================================================
+# EDITORES E IDEs
+# ============================================================
+.vscode/settings.json
+.vscode/launch.json
+.idea/
+*.suo
+*.user
+*.swp
+*.swo
+*~
+
+# ============================================================
+# ARCHIVOS TEMPORALES Y DE TRABAJO
+# ============================================================
+tmp/
+temp/
+*.tmp
+*.bak
+
+# Archivos de datos locales (no subir datos reales al repo)
+*.parquet
+*.csv
+*.json.bak
