@@ -318,8 +318,8 @@ const Settings = () => {
           <button
             onClick={() => setActiveTab("aws")}
             className={`px-6 py-4 font-medium text-sm ${activeTab === "aws"
-                ? "border-b-2 border-primary-500 text-primary-600 dark:text-primary-400"
-                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              ? "border-b-2 border-primary-500 text-primary-600 dark:text-primary-400"
+              : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
               }`}
           >
             <TbBrandAws className="w-4 h-4 inline mr-2" />
@@ -328,8 +328,8 @@ const Settings = () => {
           <button
             onClick={() => setActiveTab("application")}
             className={`px-6 py-4 font-medium text-sm ${activeTab === "application"
-                ? "border-b-2 border-primary-500 text-primary-600 dark:text-primary-400"
-                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              ? "border-b-2 border-primary-500 text-primary-600 dark:text-primary-400"
+              : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
               }`}
           >
             <FiSettings className="w-4 h-4 inline mr-2" />
@@ -367,47 +367,6 @@ const Settings = () => {
             >
               <FiSave className="w-4 h-4 mr-2" />
               Guardar cambios
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Help Section */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-        <div className="flex items-center mb-6">
-          <FiHelpCircle className="w-6 h-6 text-primary-600 dark:text-primary-400 mr-3" />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Ayuda y Soporte
-          </h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <h4 className="font-medium text-gray-900 dark:text-white mb-2">Documentación</h4>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-              Consulta la documentación completa
-            </p>
-            <button className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300">
-              Ver documentación →
-            </button>
-          </div>
-          <div>
-            <h4 className="font-medium text-gray-900 dark:text-white mb-2">
-              Configuración AWS
-            </h4>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-              Guía para configurar credenciales AWS
-            </p>
-            <button className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300">
-              Guía AWS →
-            </button>
-          </div>
-          <div>
-            <h4 className="font-medium text-gray-900 dark:text-white mb-2">Soporte Técnico</h4>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-              Contacta al equipo de soporte
-            </p>
-            <button className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300">
-              Contactar soporte →
             </button>
           </div>
         </div>
