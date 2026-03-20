@@ -430,7 +430,15 @@ const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNaviga
                   <TbFileDatabase className="w-6 h-6 text-green-600 dark:text-green-400" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-gray-900 dark:text-white truncate">
+                  <h4 
+                    className="font-medium text-gray-900 dark:text-white truncate hover:text-primary-600 dark:hover:text-primary-400 cursor-pointer transition-colors"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleViewFile(file);
+                    }}
+                    title="Ver detalles"
+                  >
                     {file.name}
                   </h4>
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
@@ -533,7 +541,15 @@ const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNaviga
                     <div className="p-1.5 bg-green-100 dark:bg-green-900/30 rounded mr-3">
                       <TbFileDatabase className="w-4 h-4 text-green-600 dark:text-green-400" />
                     </div>
-                    <div className="text-sm font-medium text-gray-900 dark:text-white truncate max-xs">
+                    <div 
+                      className="text-sm font-medium text-gray-900 dark:text-white truncate max-xs hover:text-primary-600 dark:hover:text-primary-400 cursor-pointer transition-colors"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleViewFile(file);
+                      }}
+                      title="Ver detalles"
+                    >
                       {file.name}
                     </div>
                   </div>
