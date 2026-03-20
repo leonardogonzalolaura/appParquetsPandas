@@ -10,6 +10,8 @@ import {
   FiRefreshCw,
   FiArrowUp,
   FiArrowDown,
+  FiSearch,
+  FiX,
 } from "react-icons/fi";
 import { TbTable } from "react-icons/tb";
 
@@ -22,6 +24,9 @@ const DataTable = ({
   selectedColumns,
   setSelectedColumns,
   handleColumnToggle,
+  filters,
+  handleFilterChange,
+  handleApplyFilters,
 }) => {
   const tableContainerRef = useRef(null);
   const [showLeftScroll, setShowLeftScroll] = useState(false);
@@ -31,6 +36,7 @@ const DataTable = ({
   const [showColumnCount, setShowColumnCount] = useState(7);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
   const [showColumnPicker, setShowColumnPicker] = useState(false);
+  const [columnSearch, setColumnSearch] = useState("");
   const pickerRef = useRef(null);
 
   // Cerrar picker al hacer clic fuera
@@ -169,19 +175,6 @@ const DataTable = ({
     return data.columns.length - visibleColumns.length;
   };
 
-  if (!data.data || data.data.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <TbTable className="w-16 h-16 text-gray-300 dark:text-gray-700 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-          No hay datos para mostrar
-        </h3>
-        <p className="text-gray-500 dark:text-gray-400">
-          Intenta ajustar los filtros o seleccionar diferentes columnas
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div className={isExpanded ? "fixed inset-0 z-[60] flex items-center justify-center p-4" : "relative w-full"}>
@@ -228,10 +221,39 @@ const DataTable = ({
             </div>
 
             <div className="flex items-center gap-2">
+              {/* Botón Aplicar Filtros (si hay filtros) */}
+              {Object.values(filters).some(v => v) && (
+                <button
+                  onClick={handleApplyFilters}
+                  className="flex items-center px-3 py-1.5 rounded-lg text-xs font-bold bg-primary-600 dark:bg-primary-700 text-white hover:bg-primary-700 dark:hover:bg-primary-600 transition-all shadow-sm animate-pulse-subtle"
+                  title="Aplicar todos los filtros (Enter)"
+                >
+                  <FiRefreshCw className="w-3.5 h-3.5 mr-2" />
+                  Aplicar Filtros
+                </button>
+              )}
+
+              {/* Botón Limpiar Filtros */}
+              {Object.values(filters).some(v => v) && (
+                <button
+                  onClick={() => {
+                    Object.keys(filters).forEach(k => handleFilterChange(k, ""));
+                    setTimeout(handleApplyFilters, 0);
+                  }}
+                  className="flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
+                >
+                  <FiX className="w-3.5 h-3.5 mr-2" />
+                  Limpiar
+                </button>
+              )}
+
               {/* Selector de columnas granular */}
               <div className="relative" ref={pickerRef}>
                 <button
-                  onClick={() => setShowColumnPicker(!showColumnPicker)}
+                  onClick={() => {
+                    if (!showColumnPicker) setColumnSearch("");
+                    setShowColumnPicker(!showColumnPicker);
+                  }}
                   className={`flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
                     showColumnPicker
                       ? "bg-primary-50 border-primary-500 text-primary-700 dark:bg-primary-900/30 dark:border-primary-400 dark:text-primary-300"
@@ -253,6 +275,30 @@ const DataTable = ({
                         {selectedColumns.length} / {data.columns?.length || 0}
                       </span>
                     </div>
+
+                    {/* Buscador de columnas */}
+                    <div className="p-2 border-b border-gray-100 dark:border-gray-700">
+                      <div className="relative">
+                        <FiSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                        <input
+                          type="text"
+                          placeholder="Buscar columna..."
+                          className="w-full pl-8 pr-8 py-1.5 text-xs bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500 transition-all"
+                          value={columnSearch}
+                          onChange={(e) => setColumnSearch(e.target.value)}
+                          autoFocus
+                        />
+                        {columnSearch && (
+                          <button
+                            onClick={() => setColumnSearch("")}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
+                          >
+                            <FiX className="w-2.5 h-2.5 text-gray-400" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
                     <div className="max-h-64 overflow-y-auto p-2 space-y-0.5">
                       <button
                         onClick={() => {
@@ -273,22 +319,41 @@ const DataTable = ({
                       >
                         Primeras {VISIBLE_COLUMNS_COUNT}
                       </button>
-                      {data.columns?.map((col) => (
-                        <label
-                          key={col}
-                          className="flex items-center px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-colors group"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedColumns.includes(col)}
-                            onChange={() => handleColumnToggle(col)}
-                            className="w-3.5 h-3.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 mr-3"
-                          />
-                          <span className={`text-xs truncate ${selectedColumns.includes(col) ? "text-gray-900 dark:text-white font-medium" : "text-gray-500 dark:text-gray-400"}`}>
-                            {col}
-                          </span>
-                        </label>
-                      ))}
+                      {data.columns
+                        ?.filter((col) =>
+                          col.toLowerCase().includes(columnSearch.toLowerCase())
+                        )
+                        .map((col) => (
+                          <label
+                            key={col}
+                            className="flex items-center px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-colors group"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedColumns.includes(col)}
+                              onChange={() => handleColumnToggle(col)}
+                              className="w-3.5 h-3.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 mr-3"
+                            />
+                            <span
+                              className={`text-xs truncate ${
+                                selectedColumns.includes(col)
+                                  ? "text-gray-900 dark:text-white font-medium"
+                                  : "text-gray-500 dark:text-gray-400"
+                              }`}
+                            >
+                              {col}
+                            </span>
+                          </label>
+                        ))}
+                      {data.columns?.filter((col) =>
+                        col.toLowerCase().includes(columnSearch.toLowerCase())
+                      ).length === 0 && (
+                        <div className="py-4 text-center">
+                          <p className="text-[10px] text-gray-500 dark:text-gray-400 italic">
+                            No se encontraron columnas
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -369,34 +434,104 @@ const DataTable = ({
                     </th>
                   ))}
                 </tr>
+                {/* Nueva fila de filtros */}
+                <tr className="bg-gray-100/50 dark:bg-gray-900/30">
+                  {visibleColumns.map((column, index) => (
+                    <th
+                      key={`filter-${index}`}
+                      className="px-3 py-2 border-b border-gray-200 dark:border-gray-700"
+                    >
+                      <div className="relative group">
+                        <FiSearch className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 group-focus-within:text-primary-500 transition-colors" />
+                        <input
+                          type="text"
+                          placeholder="Filtrar..."
+                          className="w-full pl-7 pr-7 py-1 text-[10px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 transition-all placeholder:text-gray-400"
+                          value={filters[column] || ""}
+                          onChange={(e) => handleFilterChange(column, e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleApplyFilters();
+                          }}
+                        />
+                        {filters[column] && (
+                          <button
+                            onClick={() => {
+                              handleFilterChange(column, "");
+                              setTimeout(handleApplyFilters, 0);
+                            }}
+                            className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+                          >
+                            <FiX className="w-2.5 h-2.5 text-gray-400" />
+                          </button>
+                        )}
+                      </div>
+                    </th>
+                  ))}
+                </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {sortedData.map((row, rowIndex) => (
-                  <tr key={rowIndex} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                    {visibleColumns.map((column, colIndex) => (
-                      <td
-                        key={colIndex}
-                        className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300"
-                        style={{
-                          minWidth: `${COLUMN_MIN_WIDTH}px`,
-                          maxWidth: `${COLUMN_MIN_WIDTH * 2}px`,
-                        }}
-                      >
-                        <div className="truncate" title={String(row[column])}>
-                          {row[column] === null ? (
-                            <span className="text-gray-400 dark:text-gray-500 italic">null</span>
-                          ) : typeof row[column] === "object" ? (
-                            <code className="text-xs bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 p-1 rounded block truncate">
-                              {JSON.stringify(row[column])}
-                            </code>
-                          ) : (
-                            String(row[column])
-                          )}
-                        </div>
-                      </td>
-                    ))}
+                {sortedData && sortedData.length > 0 ? (
+                  sortedData.map((row, rowIndex) => (
+                    <tr
+                      key={rowIndex}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                    >
+                      {visibleColumns.map((column, colIndex) => (
+                        <td
+                          key={colIndex}
+                          className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300"
+                          style={{
+                            minWidth: `${COLUMN_MIN_WIDTH}px`,
+                            maxWidth: `${COLUMN_MIN_WIDTH * 2}px`,
+                          }}
+                        >
+                          <div className="truncate" title={String(row[column])}>
+                            {row[column] === null ? (
+                              <span className="text-gray-400 dark:text-gray-500 italic">
+                                null
+                              </span>
+                            ) : typeof row[column] === "object" ? (
+                              <code className="text-xs bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 p-1 rounded block truncate">
+                                {JSON.stringify(row[column])}
+                              </code>
+                            ) : (
+                              String(row[column])
+                            )}
+                          </div>
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={visibleColumns.length}
+                      className="px-6 py-20 text-center"
+                    >
+                      <TbTable className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                      <h3 className="text-base font-medium text-gray-900 dark:text-white mb-1">
+                        No hay datos para mostrar
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Intenta ajustar los filtros o seleccionar diferentes
+                        columnas
+                      </p>
+                      {Object.values(filters).some((v) => v) && (
+                        <button
+                          onClick={() => {
+                            Object.keys(filters).forEach((k) =>
+                              handleFilterChange(k, "")
+                            );
+                            setTimeout(handleApplyFilters, 0);
+                          }}
+                          className="mt-4 text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline"
+                        >
+                          Limpiar todos los filtros
+                        </button>
+                      )}
+                    </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>

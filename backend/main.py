@@ -469,10 +469,19 @@ async def get_parquet_data(
             logger.info(f"Aplicando filtros: {request.filters}")
             for column, value in request.filters.items():
                 if column in df.columns:
-                    df = df[df[column] == value]
-                    logger.info(
-                        f"Filtro aplicado en {column}: {len(df)} filas restantes"
-                    )
+                    # Si el valor es una cadena, intentar búsqueda parcial insensible a mayúsculas
+                    if isinstance(value, str) and value.strip():
+                        try:
+                            # Convertir columna a string para búsqueda parcial si no lo es
+                            df = df[df[column].astype(str).str.contains(value, case=False, na=False)]
+                            logger.info(f"Filtro parcial aplicado en {column}: '{value}' -> {len(df)} filas restantes")
+                        except Exception as filter_err:
+                            logger.warning(f"Error en filtro parcial para {column}: {filter_err}. Usando coincidencia exacta.")
+                            df = df[df[column] == value]
+                    else:
+                        # Para otros tipos o valores vacíos, usar coincidencia exacta
+                        df = df[df[column] == value]
+                        logger.info(f"Filtro exacto aplicado en {column}: {len(df)} filas restantes")
                 else:
                     logger.warning(f"Columna {column} no encontrada para filtrar")
 

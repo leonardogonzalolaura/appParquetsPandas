@@ -146,6 +146,9 @@ const ParquetModal = ({
                 selectedColumns={selectedColumns}
                 setSelectedColumns={setSelectedColumns}
                 handleColumnToggle={handleColumnToggle}
+                filters={filters}
+                handleFilterChange={handleFilterChange}
+                handleApplyFilters={handleApplyFilters}
               />
             )}
             {viewMode === "json" && <div className="p-4"><JsonView data={data} /></div>}

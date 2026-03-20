@@ -6,6 +6,8 @@ import {
   FiCalendar,
   FiCopy,
   FiCheck,
+  FiSearch,
+  FiX,
 } from "react-icons/fi";
 
 const MetadataSection = ({
@@ -15,6 +17,7 @@ const MetadataSection = ({
   formatFileSize,
 }) => {
   const [copied, setCopied] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   if (!metadata) return null;
 
@@ -117,6 +120,28 @@ const MetadataSection = ({
               )}
             </button>
           </div>
+
+          {/* Buscador de esquema */}
+          <div className="mb-3 relative group">
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 group-focus-within:text-primary-500 transition-colors" />
+            <input
+              type="text"
+              placeholder="Buscar columna en el esquema..."
+              className="w-full pl-9 pr-9 py-2 text-xs bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                title="Limpiar búsqueda"
+              >
+                <FiX className="w-3 h-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" />
+              </button>
+            )}
+          </div>
+
           <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="overflow-x-auto max-h-64 overflow-y-auto">
               <table className="w-full text-sm">
@@ -134,28 +159,51 @@ const MetadataSection = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700 bg-white dark:bg-gray-800">
-                  {metadata.schema.fields.map((field, index) => (
-                    <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                      <td className="px-4 py-2.5 font-medium text-gray-900 dark:text-white max-w-[200px]">
-                        <span className="truncate block" title={field.name}>{field.name}</span>
-                      </td>
-                      <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400">
-                        <code className="bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded text-xs">
-                          {field.type}
-                        </code>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${field.nullable
-                            ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400"
-                            : "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
+                  {metadata.schema.fields
+                    .filter((field) =>
+                      field.name.toLowerCase().includes(searchTerm.toLowerCase())
+                    )
+                    .map((field, index) => (
+                      <tr
+                        key={index}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                      >
+                        <td className="px-4 py-2.5 font-medium text-gray-900 dark:text-white max-w-[200px]">
+                          <span className="truncate block" title={field.name}>
+                            {field.name}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400">
+                          <code className="bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded text-xs">
+                            {field.type}
+                          </code>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                              field.nullable
+                                ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400"
+                                : "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
                             }`}
-                        >
-                          {field.nullable ? "Sí" : "No"}
-                        </span>
+                          >
+                            {field.nullable ? "Sí" : "No"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  {metadata.schema.fields.filter((field) =>
+                    field.name.toLowerCase().includes(searchTerm.toLowerCase())
+                  ).length === 0 && (
+                    <tr>
+                      <td
+                        colSpan="3"
+                        className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400 italic bg-gray-50/50 dark:bg-gray-900/20"
+                      >
+                        No se encontraron columnas que coincidan con "
+                        {searchTerm}"
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
