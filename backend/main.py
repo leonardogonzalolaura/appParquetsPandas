@@ -257,8 +257,9 @@ async def list_objects(
                 if key.endswith("/") or key in folders:
                     continue
 
-                # Filtrar solo archivos Parquet
-                if key.endswith(".parquet"):
+                # Filtrar archivos soportados
+                supported_extensions = (".parquet", ".csv", ".json", ".txt")
+                if key.lower().endswith(supported_extensions):
                     file_name = key.split("/")[-1]
 
                     s3_obj = S3Object(
@@ -345,8 +346,9 @@ async def explore_bucket(
                 if key.endswith("/"):
                     continue
 
-                # Filtrar solo archivos Parquet
-                if key.endswith(".parquet"):
+                # Filtrar archivos soportados
+                supported_extensions = (".parquet", ".csv", ".json", ".txt")
+                if key.lower().endswith(supported_extensions):
                     file_name = key.split("/")[-1]
 
                     result["files"].append(
@@ -362,8 +364,9 @@ async def explore_bucket(
 
         # Si no hay carpetas ni archivos, verificar si estamos en una hoja (archivo directo)
         if not result["folders"] and not result["files"] and normalized_path:
-            # Intentar ver si la ruta es un archivo Parquet
-            if normalized_path.endswith(".parquet"):
+            # Intentar ver si la ruta es un archivo soportado
+            supported_extensions = (".parquet", ".csv", ".json", ".txt")
+            if normalized_path.lower().endswith(supported_extensions):
                 try:
                     # Verificar si el archivo existe
                     head_response = s3_client.head_object(
@@ -396,41 +399,88 @@ async def explore_bucket(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/parquet/metadata")
-async def get_parquet_metadata(bucket: str, key: str, s3_client=Depends(get_s3_client)):
-    """Obtener metadata de un archivo Parquet"""
+@app.get("/api/file/metadata")
+async def get_file_metadata(bucket: str, key: str, s3_client=Depends(get_s3_client)):
+    """Obtener metadata de un archivo (Parquet, CSV, JSON, TXT)"""
     try:
         logger.info(f"Obteniendo metadata de {bucket}/{key}")
 
-        # Descargar archivo Parquet a memoria
-        response = s3_client.get_object(Bucket=bucket, Key=key)
-        file_content = response["Body"].read()
-        logger.info(f"Archivo descargado: {len(file_content)} bytes")
+        # Obtener información básica del objeto S3
+        response = s3_client.head_object(Bucket=bucket, Key=key)
+        file_size = response["ContentLength"]
+        last_modified = response["LastModified"].isoformat()
 
-        # Siempre usar pandas para leer metadata - es más compatible
-        logger.info("Usando pandas para leer metadata")
-        df = pd.read_parquet(io.BytesIO(file_content))
+        # Determinar el tipo de contenido basado en la extensión
+        file_ext = os.path.splitext(key)[1].lower()
+        
+        columns = []
+        row_count = 0
+        schema_fields = []
 
-        logger.info(f"DataFrame cargado: {len(df.columns)} columnas, {len(df)} filas")
-
-        # Crear metadata simple pero informativa
-        metadata = ParquetMetadata(
-            columns=list(df.columns),
-            row_count=len(df),
-            file_size=response["ContentLength"],
-            schema={
-                "fields": [
-                    {
-                        "name": col,
-                        "type": str(df[col].dtype),
-                        "nullable": True,  # Asumir nullable por defecto
-                    }
+        # Descargar una parte o todo el archivo para inferir metadata si es necesario
+        # Para archivos grandes como Parquet o CSV, leemos solo lo necesario o usamos pandas
+        
+        if file_ext == ".parquet":
+            get_obj_resp = s3_client.get_object(Bucket=bucket, Key=key)
+            file_content = get_obj_resp["Body"].read()
+            df = pd.read_parquet(io.BytesIO(file_content))
+            columns = list(df.columns)
+            row_count = len(df)
+            schema_fields = [
+                {"name": col, "type": str(df[col].dtype), "nullable": True}
+                for col in df.columns
+            ]
+        elif file_ext in (".csv", ".txt"):
+            # Leer las primeras filas para obtener columnas y tipos
+            get_obj_resp = s3_client.get_object(Bucket=bucket, Key=key)
+            # Para CSV/TXT, leemos una muestra para no descargar todo si es muy grande
+            # Pero por ahora descargamos todo para simplicidad como estaba el Parquet
+            file_content = get_obj_resp["Body"].read()
+            try:
+                # Intentar leer como CSV con detección automática de separador
+                df = pd.read_csv(io.BytesIO(file_content), nrows=100, sep=None, engine='python')
+                columns = list(df.columns)
+                # No podemos saber el row_count exacto sin leer todo, 
+                # pero para archivos de texto podríamos estimar o leer todo si no es gigante
+                # Por ahora leemos todo para ser consistentes con el comportamiento anterior de Parquet
+                full_df = pd.read_csv(io.BytesIO(file_content), sep=None, engine='python')
+                row_count = len(full_df)
+                schema_fields = [
+                    {"name": col, "type": str(df[col].dtype), "nullable": True}
                     for col in df.columns
                 ]
-            },
+            except Exception as csv_err:
+                logger.warning(f"No se pudo leer como CSV tabular: {csv_err}")
+                columns = ["contenido"]
+                row_count = 1
+                schema_fields = [{"name": "text", "type": "string", "nullable": True}]
+        elif file_ext == ".json":
+            get_obj_resp = s3_client.get_object(Bucket=bucket, Key=key)
+            file_content = get_obj_resp["Body"].read()
+            data = json.loads(file_content)
+            if isinstance(data, list) and len(data) > 0:
+                if isinstance(data[0], dict):
+                    columns = list(data[0].keys())
+                    row_count = len(data)
+                    schema_fields = [
+                        {"name": col, "type": type(data[0][col]).__name__, "nullable": True}
+                        for col in columns
+                    ]
+                else:
+                    columns = ["value"]
+                    row_count = len(data)
+            elif isinstance(data, dict):
+                columns = list(data.keys())
+                row_count = 1
+
+        metadata = ParquetMetadata(
+            columns=columns,
+            row_count=row_count,
+            file_size=file_size,
+            schema={"fields": schema_fields},
+            created_at=last_modified
         )
 
-        logger.info(f"Metadata generada exitosamente: {len(metadata.columns)} columnas")
         return metadata
 
     except Exception as e:
@@ -442,78 +492,75 @@ async def get_parquet_metadata(bucket: str, key: str, s3_client=Depends(get_s3_c
 # Función eliminada - ahora se usa directamente pandas en get_parquet_metadata
 
 
-@app.post("/api/parquet/data")
-async def get_parquet_data(
+@app.post("/api/file/data")
+async def get_file_data(
     request: ParquetDataRequest, s3_client=Depends(get_s3_client)
 ):
-    """Obtener datos de un archivo Parquet con opciones de filtrado"""
+    """Obtener datos de un archivo (Parquet, CSV, JSON, TXT) con opciones de filtrado"""
     try:
         logger.info(f"Obteniendo datos de {request.bucket}/{request.key}")
-        logger.info(
-            f"Parámetros: limit={request.limit}, columns={request.columns}, filters={request.filters}"
-        )
+        
+        file_ext = os.path.splitext(request.key)[1].lower()
 
-        # Descargar archivo Parquet
+        # Descargar archivo
         response = s3_client.get_object(Bucket=request.bucket, Key=request.key)
         file_content = response["Body"].read()
-        logger.info(f"Archivo descargado: {len(file_content)} bytes")
+        
+        df = None
+        is_tabular = True
+        
+        if file_ext == ".parquet":
+            df = pd.read_parquet(io.BytesIO(file_content))
+        elif file_ext in (".csv", ".txt"):
+            try:
+                # Intentar leer como CSV con detección automática de separador
+                df = pd.read_csv(io.BytesIO(file_content), sep=None, engine='python')
+            except Exception:
+                # Si falla, leer como texto plano
+                text_content = file_content.decode('utf-8', errors='replace')
+                is_tabular = False
+                df = pd.DataFrame([{"line": line} for line in text_content.splitlines()])
+        elif file_ext == ".json":
+            try:
+                data = json.loads(file_content)
+                if isinstance(data, list):
+                    df = pd.DataFrame(data)
+                else:
+                    df = pd.DataFrame([data])
+            except Exception as json_err:
+                logger.error(f"Error parseando JSON: {json_err}")
+                raise HTTPException(status_code=400, detail="Error al parsear el archivo JSON")
 
-        # Leer Parquet en DataFrame de pandas
-        df = pd.read_parquet(io.BytesIO(file_content))
-        logger.info(
-            f"DataFrame cargado: {len(df.columns)} columnas, {len(df)} filas totales"
-        )
+        if df is None:
+            raise HTTPException(status_code=400, detail="Formato de archivo no soportado o no válido")
 
-        # Aplicar filtros si existen
+        # Aplicar filtros si existen (solo si es tabular)
         if request.filters:
-            logger.info(f"Aplicando filtros: {request.filters}")
             for column, value in request.filters.items():
                 if column in df.columns:
-                    # Si el valor es una cadena, intentar búsqueda parcial insensible a mayúsculas
                     if isinstance(value, str) and value.strip():
-                        try:
-                            # Convertir columna a string para búsqueda parcial si no lo es
-                            df = df[df[column].astype(str).str.contains(value, case=False, na=False)]
-                            logger.info(f"Filtro parcial aplicado en {column}: '{value}' -> {len(df)} filas restantes")
-                        except Exception as filter_err:
-                            logger.warning(f"Error en filtro parcial para {column}: {filter_err}. Usando coincidencia exacta.")
-                            df = df[df[column] == value]
+                        df = df[df[column].astype(str).str.contains(value, case=False, na=False)]
                     else:
-                        # Para otros tipos o valores vacíos, usar coincidencia exacta
                         df = df[df[column] == value]
-                        logger.info(f"Filtro exacto aplicado en {column}: {len(df)} filas restantes")
-                else:
-                    logger.warning(f"Columna {column} no encontrada para filtrar")
 
-        # Seleccionar columnas específicas si se solicitan
+        # Seleccionar columnas
         if request.columns:
-            logger.info(f"Seleccionando columnas: {request.columns}")
             available_cols = [col for col in request.columns if col in df.columns]
-            if len(available_cols) < len(request.columns):
-                missing = set(request.columns) - set(available_cols)
-                logger.warning(f"Columnas no encontradas: {missing}")
             df = df[available_cols]
-            logger.info(f"Columnas seleccionadas: {len(df.columns)}")
 
-        # Limitar número de filas
+        # Limitar filas
         df = df.head(request.limit)
-        logger.info(f"Filas después de limitar: {len(df)}")
 
-        # Convertir a formato JSON amigable
+        # Preparar resultado
         result = {
             "data": json.loads(df.to_json(orient="records", date_format="iso")),
             "columns": list(df.columns),
             "row_count": len(df),
             "dtypes": {col: str(dtype) for col, dtype in df.dtypes.items()},
-            "summary": {
-                "total_rows": len(df),
-                "memory_usage_mb": round(
-                    df.memory_usage(deep=True).sum() / (1024 * 1024), 2
-                ),
-            },
+            "file_type": file_ext.lstrip('.'),
+            "is_tabular": is_tabular
         }
 
-        logger.info(f"Datos preparados: {len(result['data'])} registros")
         return result
     except Exception as e:
         logger.error(f"Error al leer datos de {request.bucket}/{request.key}: {e}")

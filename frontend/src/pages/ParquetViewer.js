@@ -19,6 +19,7 @@ import {
   FiExternalLink,
   FiChevronLeft,
   FiList,
+  FiFileText,
 } from "react-icons/fi";
 import {
   TbBrandAws,
@@ -221,7 +222,7 @@ const ParquetViewer = ({ selectedBucket }) => {
 
       // Load metadata
       console.log("Solicitando metadata...");
-      const metadataResponse = await axios.get("/api/parquet/metadata", {
+      const metadataResponse = await axios.get("/api/file/metadata", {
         params: {
           bucket: bucket,
           key: key,
@@ -232,7 +233,7 @@ const ParquetViewer = ({ selectedBucket }) => {
 
       // Load data with default limit
       console.log("Solicitando datos...");
-      const dataResponse = await axios.post("/api/parquet/data", {
+      const dataResponse = await axios.post("/api/file/data", {
         bucket: bucket,
         key: key,
         limit: limit,
@@ -306,9 +307,10 @@ const ParquetViewer = ({ selectedBucket }) => {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
+      const extension = file.key.split('.').pop();
       link.setAttribute(
         "download",
-        `${file.name.replace(".parquet", "")}.${format}`,
+        `${file.name.replace(`.${extension}`, "")}.${format}`,
       );
       document.body.appendChild(link);
       link.click();
@@ -613,7 +615,7 @@ const ParquetViewer = ({ selectedBucket }) => {
             Cargando archivo...
           </h3>
           <p className="text-gray-500 dark:text-gray-400">
-            Leyendo metadata y datos del archivo Parquet
+            Leyendo metadata y datos del archivo
           </p>
         </div>
       );
@@ -649,7 +651,7 @@ const ParquetViewer = ({ selectedBucket }) => {
           </h3>
           <p className="text-gray-500 dark:text-gray-400">
             Navega a un bucket desde el Explorador y selecciona un archivo
-            .parquet para visualizarlo
+            compatible para visualizarlo
           </p>
           {selectedBucket && (
             <div className="mt-6 space-y-3">
@@ -680,7 +682,7 @@ const ParquetViewer = ({ selectedBucket }) => {
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-8 max-w-md mx-auto">
           <FiDatabase className="w-16 h-16 text-blue-500 dark:text-blue-400 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-            Archivo Parquet Cargado
+            Archivo Cargado
           </h3>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
             <span className="font-medium dark:text-gray-200">{file.name}</span>
@@ -745,10 +747,10 @@ const ParquetViewer = ({ selectedBucket }) => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="min-w-0">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white truncate">
-              Visor Parquet
+              Visor de Archivos
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              Visualiza y analiza archivos Parquet en tiempo real
+              Visualiza y analiza tus datos en tiempo real
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3 flex-shrink-0">

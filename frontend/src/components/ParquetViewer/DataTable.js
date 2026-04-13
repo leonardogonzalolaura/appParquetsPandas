@@ -470,7 +470,15 @@ const DataTable = ({
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {sortedData && sortedData.length > 0 ? (
+                {data.is_tabular === false ? (
+                  <tr>
+                    <td colSpan={visibleColumns.length} className="p-0">
+                      <pre className="p-6 text-sm font-mono text-gray-700 dark:text-gray-300 overflow-auto bg-gray-50 dark:bg-gray-900/30 line-height-relaxed select-text">
+                        {data.data.map(row => row.line).join('\n')}
+                      </pre>
+                    </td>
+                  </tr>
+                ) : sortedData && sortedData.length > 0 ? (
                   sortedData.map((row, rowIndex) => (
                     <tr
                       key={rowIndex}

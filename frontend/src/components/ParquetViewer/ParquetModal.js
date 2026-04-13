@@ -5,6 +5,8 @@ import {
   FiDatabase,
   FiColumns,
   FiInfo,
+  FiFileText,
+  FiCode,
 } from "react-icons/fi";
 import { TbTable, TbFileDatabase, TbBrandAws } from "react-icons/tb";
 
@@ -186,11 +188,19 @@ const ParquetModal = ({
           <div className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
             <div className="flex items-center min-w-0">
               <div className="w-10 h-10 bg-primary-50 dark:bg-primary-900/30 rounded-xl flex items-center justify-center mr-3 flex-shrink-0">
-                <TbFileDatabase className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                {file?.name.endsWith('.parquet') ? (
+                  <TbFileDatabase className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                ) : file?.name.endsWith('.csv') ? (
+                  <FiFileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                ) : file?.name.endsWith('.json') ? (
+                  <FiCode className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                ) : (
+                  <FiFileText className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                )}
               </div>
               <div className="min-w-0">
                 <h2 className="text-lg font-bold text-gray-900 dark:text-white truncate leading-tight">
-                  {file?.name ?? "Visualizador Parquet"}
+                  {file?.name ?? "Visualizador de Archivos"}
                 </h2>
                 {file && (
                   <div className="flex items-center space-x-2 mt-0.5">
@@ -221,13 +231,15 @@ const ParquetModal = ({
                       {fmt.toUpperCase()}
                     </button>
                   ))}
-                  <button
-                    onClick={() => handleDownload("parquet")}
-                    className="flex items-center px-3 py-1.5 text-xs font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-600 transition-colors"
-                  >
-                    <FiDownload className="w-3.5 h-3.5 mr-1" />
-                    Parquet
-                  </button>
+                  {file.name.endsWith('.parquet') && (
+                    <button
+                      onClick={() => handleDownload("parquet")}
+                      className="flex items-center px-3 py-1.5 text-xs font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-600 transition-colors"
+                    >
+                      <FiDownload className="w-3.5 h-3.5 mr-1" />
+                      Parquet
+                    </button>
+                  )}
                 </div>
               )}
               {/* Cerrar */}

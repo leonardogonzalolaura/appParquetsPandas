@@ -53,10 +53,10 @@ const MetadataSection = ({
         <div className="bg-primary-50 dark:bg-primary-900/20 rounded-xl p-4 border border-primary-100 dark:border-primary-900/50">
           <div className="flex items-center text-primary-600 dark:text-primary-400 mb-1">
             <FiHash className="w-4 h-4 mr-2" />
-            <span className="text-xs font-semibold uppercase tracking-wide">Filas</span>
+            <span className="text-xs font-semibold uppercase tracking-wide">{metadata.columns?.length > 1 ? "Filas" : "Registros"}</span>
           </div>
           <div className="text-2xl font-bold text-primary-900 dark:text-white">
-            {metadata.row_count?.toLocaleString()}
+            {metadata.row_count?.toLocaleString() || 0}
           </div>
         </div>
 
@@ -97,7 +97,7 @@ const MetadataSection = ({
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center">
               <FiColumns className="w-3.5 h-3.5 mr-1.5" />
-              Esquema de columnas
+              Estructura de datos
             </h4>
             <button
               onClick={handleCopySchema}

@@ -16,6 +16,8 @@ import {
   FiHome,
   FiCopy,
   FiX,
+  FiFileText,
+  FiCode,
 } from "react-icons/fi";
 import { TbBrandAws, TbFileDatabase, TbFolderFilled } from "react-icons/tb";
 import { ParquetModal } from "../components/ParquetViewer";
@@ -178,7 +180,7 @@ const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNaviga
     if (!selectedFile) return;
 
     try {
-      const response = await axios.get("/api/parquet/download", {
+      const response = await axios.get("/api/download", {
         params: {
           bucket: selectedFile.bucket,
           key: selectedFile.key,
@@ -190,9 +192,10 @@ const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNaviga
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
+      const extension = selectedFile.key.split('.').pop();
       link.setAttribute(
         "download",
-        `${selectedFile.name.replace(".parquet", "")}.${format}`,
+        `${selectedFile.name.replace(`.${extension}`, "")}.${format}`,
       );
       document.body.appendChild(link);
       link.click();
@@ -224,7 +227,7 @@ const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNaviga
 
     setFileLoading(true);
     try {
-      const dataResponse = await axios.post("/api/parquet/data", {
+      const dataResponse = await axios.post("/api/file/data", {
         bucket: selectedFile.bucket,
         key: selectedFile.key,
         limit: limit,
@@ -245,7 +248,7 @@ const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNaviga
 
     setFileLoading(true);
     try {
-      const dataResponse = await axios.post("/api/parquet/data", {
+      const dataResponse = await axios.post("/api/file/data", {
         bucket: selectedFile.bucket,
         key: selectedFile.key,
         limit: limit,
@@ -277,7 +280,7 @@ const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNaviga
 
     try {
       // Cargar metadata
-      const metadataResponse = await axios.get("/api/parquet/metadata", {
+      const metadataResponse = await axios.get("/api/file/metadata", {
         params: {
           bucket: selectedBucket,
           key: file.key,
@@ -286,7 +289,7 @@ const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNaviga
       setFileMetadata(metadataResponse.data);
 
       // Cargar datos iniciales
-      const dataResponse = await axios.post("/api/parquet/data", {
+      const dataResponse = await axios.post("/api/file/data", {
         bucket: selectedBucket,
         key: file.key,
         limit: limit,
@@ -299,9 +302,9 @@ const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNaviga
         setSelectedColumns(initialColumns);
       }
     } catch (err) {
-      console.error("Error loading parquet file:", err);
+      console.error("Error loading file:", err);
       setFileError(
-        err.response?.data?.detail || "Error al cargar el archivo Parquet",
+        err.response?.data?.detail || "Error al cargar el archivo",
       );
     } finally {
       setFileLoading(false);
@@ -398,10 +401,10 @@ const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNaviga
         <div className="text-center py-12">
           <TbFileDatabase className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-            No hay archivos Parquet
+            No hay archivos compatibles
           </h3>
           <p className="text-gray-500 dark:text-gray-400">
-            Esta carpeta no contiene archivos .parquet
+            Esta carpeta no contiene archivos compatibles (.parquet, .csv, .json, .txt)
           </p>
         </div>
       );
@@ -427,7 +430,15 @@ const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNaviga
               </div>
               <div className="flex items-start mb-3">
                 <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg mr-3">
-                  <TbFileDatabase className="w-6 h-6 text-green-600 dark:text-green-400" />
+                  {file.name.endsWith('.parquet') ? (
+                    <TbFileDatabase className="w-6 h-6 text-green-600 dark:text-green-400" />
+                  ) : file.name.endsWith('.csv') ? (
+                    <FiFileText className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                  ) : file.name.endsWith('.json') ? (
+                    <FiCode className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+                  ) : (
+                    <FiFileText className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 
@@ -538,8 +549,21 @@ const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNaviga
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
-                    <div className="p-1.5 bg-green-100 dark:bg-green-900/30 rounded mr-3">
-                      <TbFileDatabase className="w-4 h-4 text-green-600 dark:text-green-400" />
+                    <div className={`p-1.5 rounded mr-3 ${
+                      file.name.endsWith('.parquet') ? 'bg-green-100 dark:bg-green-900/30' :
+                      file.name.endsWith('.csv') ? 'bg-blue-100 dark:bg-blue-900/30' :
+                      file.name.endsWith('.json') ? 'bg-orange-100 dark:bg-orange-900/30' :
+                      'bg-gray-100 dark:bg-gray-800'
+                    }`}>
+                      {file.name.endsWith('.parquet') ? (
+                        <TbFileDatabase className="w-4 h-4 text-green-600 dark:text-green-400" />
+                      ) : file.name.endsWith('.csv') ? (
+                        <FiFileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      ) : file.name.endsWith('.json') ? (
+                        <FiCode className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                      ) : (
+                        <FiFileText className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                      )}
                     </div>
                     <div 
                       className="text-sm font-medium text-gray-900 dark:text-white truncate max-xs hover:text-primary-600 dark:hover:text-primary-400 cursor-pointer transition-colors"
@@ -670,7 +694,7 @@ const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNaviga
               <h2 className="text-base font-semibold text-gray-900 dark:text-white">
                 {selectedBucket}
               </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Explorador de archivos Parquet</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Explorador de archivos</p>
             </div>
 
             <div className="flex items-center space-x-3">
