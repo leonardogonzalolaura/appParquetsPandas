@@ -87,6 +87,72 @@ def get_s3_client():
         )
 
 
+class S3File(io.RawIOBase):
+    """
+    Clase que implementa una interfaz similar a un archivo para un objeto de S3
+    utilizando solicitudes de rango (Range Requests).
+    Permite a pyarrow leer solo las partes necesarias del archivo (como el footer de Parquet).
+    """
+    def __init__(self, s3_client, bucket, key):
+        self.s3_client = s3_client
+        self.bucket = bucket
+        self.key = key
+        self.pos = 0
+        self._size = None
+
+    @property
+    def size(self):
+        if self._size is None:
+            response = self.s3_client.head_object(Bucket=self.bucket, Key=self.key)
+            self._size = response['ContentLength']
+        return self._size
+
+    def readable(self):
+        return True
+
+    def seekable(self):
+        return True
+
+    def seek(self, offset, whence=io.SEEK_SET):
+        if whence == io.SEEK_SET:
+            self.pos = offset
+        elif whence == io.SEEK_CUR:
+            self.pos += offset
+        elif whence == io.SEEK_END:
+            self.pos = self.size + offset
+        else:
+            raise ValueError("Valor de 'whence' inválido")
+        return self.pos
+
+    def tell(self):
+        return self.pos
+
+    def read(self, size=-1):
+        if size == 0:
+            return b""
+        
+        # Si size es -1, leer hasta el final
+        if size == -1 or self.pos + size > self.size:
+            size = self.size - self.pos
+
+        if size <= 0:
+            return b""
+
+        end_pos = self.pos + size - 1
+        range_header = f"bytes={self.pos}-{end_pos}"
+        
+        try:
+            response = self.s3_client.get_object(
+                Bucket=self.bucket, Key=self.key, Range=range_header
+            )
+            data = response['Body'].read()
+            self.pos += len(data)
+            return data
+        except Exception as e:
+            logger.error(f"Error leyendo rango {range_header} de S3: {e}")
+            return b""
+
+
 # Modelos de datos
 class BucketInfo(BaseModel):
     name: str
@@ -108,10 +174,13 @@ class S3Object(BaseModel):
 
 class ParquetMetadata(BaseModel):
     columns: List[str]
+    num_columns: Optional[int] = None
     row_count: int
+    num_rows: Optional[int] = None
     file_size: int
     schema: Dict[str, Any]
     created_at: Optional[str] = None
+    format_version: str = "1.0"
 
 
 class ParquetDataRequest(BaseModel):
@@ -421,39 +490,55 @@ async def get_file_metadata(bucket: str, key: str, s3_client=Depends(get_s3_clie
         # Para archivos grandes como Parquet o CSV, leemos solo lo necesario o usamos pandas
         
         if file_ext == ".parquet":
-            get_obj_resp = s3_client.get_object(Bucket=bucket, Key=key)
-            file_content = get_obj_resp["Body"].read()
-            df = pd.read_parquet(io.BytesIO(file_content))
-            columns = list(df.columns)
-            row_count = len(df)
-            schema_fields = [
-                {"name": col, "type": str(df[col].dtype), "nullable": True}
-                for col in df.columns
-            ]
+            # OPTIMIZACIÓN: Usar S3File para leer solo metadatos (footer) sin descargar todo el archivo
+            s3_file = S3File(s3_client, bucket, key)
+            parquet_file = pq.ParquetFile(s3_file)
+            
+            columns = parquet_file.schema.names
+            row_count = parquet_file.metadata.num_rows
+            
+            # Usar el esquema de Arrow para obtener tipos de datos más legibles
+            schema_arrow = parquet_file.schema_arrow
+            schema_fields = []
+            for i in range(len(schema_arrow)):
+                field = schema_arrow[i]
+                schema_fields.append({
+                    "name": field.name, 
+                    "type": str(field.type), 
+                    "nullable": getattr(field, 'nullable', True)
+                })
         elif file_ext in (".csv", ".txt"):
-            # Leer las primeras filas para obtener columnas y tipos
-            get_obj_resp = s3_client.get_object(Bucket=bucket, Key=key)
-            # Para CSV/TXT, leemos una muestra para no descargar todo si es muy grande
-            # Pero por ahora descargamos todo para simplicidad como estaba el Parquet
-            file_content = get_obj_resp["Body"].read()
-            try:
-                # Intentar leer como CSV con detección automática de separador
-                df = pd.read_csv(io.BytesIO(file_content), nrows=100, sep=None, engine='python')
-                columns = list(df.columns)
-                # No podemos saber el row_count exacto sin leer todo, 
-                # pero para archivos de texto podríamos estimar o leer todo si no es gigante
-                # Por ahora leemos todo para ser consistentes con el comportamiento anterior de Parquet
-                full_df = pd.read_csv(io.BytesIO(file_content), sep=None, engine='python')
-                row_count = len(full_df)
+            # OPTIMIZACIÓN: Leer solo el primer MB para inferir columnas y tipos
+            # Para el conteo de filas, si el archivo es grande (>10MB), devolvemos un estimado o 0 
+            # para evitar la descarga completa en el endpoint de metadata
+            
+            if file_size > 10 * 1024 * 1024:  # 10MB
+                logger.info(f"Archivo CSV grande ({file_size} bytes), omitiendo conteo total de filas en metadata")
+                # Leer solo el inicio para las columnas
+                resp = s3_client.get_object(Bucket=bucket, Key=key, Range="bytes=0-1048575")
+                df_sample = pd.read_csv(io.BytesIO(resp["Body"].read()), nrows=100, sep=None, engine='python')
+                columns = list(df_sample.columns)
+                row_count = -1  # Indica que es un estimado o desconocido
                 schema_fields = [
-                    {"name": col, "type": str(df[col].dtype), "nullable": True}
-                    for col in df.columns
+                    {"name": col, "type": str(df_sample[col].dtype), "nullable": True}
+                    for col in df_sample.columns
                 ]
-            except Exception as csv_err:
-                logger.warning(f"No se pudo leer como CSV tabular: {csv_err}")
-                columns = ["contenido"]
-                row_count = 1
-                schema_fields = [{"name": "text", "type": "string", "nullable": True}]
+            else:
+                get_obj_resp = s3_client.get_object(Bucket=bucket, Key=key)
+                file_content = get_obj_resp["Body"].read()
+                try:
+                    df = pd.read_csv(io.BytesIO(file_content), sep=None, engine='python')
+                    columns = list(df.columns)
+                    row_count = len(df)
+                    schema_fields = [
+                        {"name": col, "type": str(df[col].dtype), "nullable": True}
+                        for col in df.columns
+                    ]
+                except Exception as csv_err:
+                    logger.warning(f"No se pudo leer como CSV tabular: {csv_err}")
+                    columns = ["contenido"]
+                    row_count = 1
+                    schema_fields = [{"name": "text", "type": "string", "nullable": True}]
         elif file_ext == ".json":
             get_obj_resp = s3_client.get_object(Bucket=bucket, Key=key)
             file_content = get_obj_resp["Body"].read()
@@ -475,10 +560,13 @@ async def get_file_metadata(bucket: str, key: str, s3_client=Depends(get_s3_clie
 
         metadata = ParquetMetadata(
             columns=columns,
+            num_columns=len(columns),
             row_count=row_count,
+            num_rows=row_count if row_count != -1 else None,
             file_size=file_size,
             schema={"fields": schema_fields},
-            created_at=last_modified
+            created_at=last_modified,
+            format_version="Parquet" if file_ext == ".parquet" else file_ext.lstrip('.').upper()
         )
 
         return metadata
@@ -500,28 +588,45 @@ async def get_file_data(
     try:
         logger.info(f"Obteniendo datos de {request.bucket}/{request.key}")
         
-        file_ext = os.path.splitext(request.key)[1].lower()
-
-        # Descargar archivo
-        response = s3_client.get_object(Bucket=request.bucket, Key=request.key)
-        file_content = response["Body"].read()
-        
         df = None
         is_tabular = True
+        file_ext = os.path.splitext(request.key)[1].lower()
         
         if file_ext == ".parquet":
-            df = pd.read_parquet(io.BytesIO(file_content))
+            # OPTIMIZACIÓN: Leer solo las columnas necesarias
+            s3_file = S3File(s3_client, request.bucket, request.key)
+            parquet_file = pq.ParquetFile(s3_file)
+            
+            # Leemos las columnas solicitadas (o todas si no hay filtro de columnas)
+            # Al usar S3File, pyarrow solo descargará los datos de esas columnas
+            table = parquet_file.read(columns=request.columns)
+            
+            # Limitamos el número de filas después de leer la tabla (es eficiente en memoria)
+            if table.num_rows > request.limit:
+                table = table.slice(0, request.limit)
+                
+            df = table.to_pandas()
+                
         elif file_ext in (".csv", ".txt"):
             try:
-                # Intentar leer como CSV con detección automática de separador
-                df = pd.read_csv(io.BytesIO(file_content), sep=None, engine='python')
-            except Exception:
-                # Si falla, leer como texto plano
-                text_content = file_content.decode('utf-8', errors='replace')
+                # OPTIMIZACIÓN: Para CSV, leer solo los primeros 5MB para la vista previa
+                # Esto permite que el sniffer (sep=None) funcione correctamente con un buffer seekable
+                response = s3_client.get_object(Bucket=request.bucket, Key=request.key, Range="bytes=0-5242879")
+                file_content = response["Body"].read()
+                
+                # Usar el buffer para leer
+                df = pd.read_csv(io.BytesIO(file_content), sep=None, engine='python', nrows=request.limit + 100)
+            except Exception as e:
+                logger.warning(f"Error leyendo CSV en modo tabular: {e}")
+                # Si falla, leer como texto plano (aquí sí descargamos lo necesario)
+                response = s3_client.get_object(Bucket=request.bucket, Key=request.key)
+                text_content = response["Body"].read().decode('utf-8', errors='replace')
                 is_tabular = False
                 df = pd.DataFrame([{"line": line} for line in text_content.splitlines()])
         elif file_ext == ".json":
             try:
+                response = s3_client.get_object(Bucket=request.bucket, Key=request.key)
+                file_content = response["Body"].read()
                 data = json.loads(file_content)
                 if isinstance(data, list):
                     df = pd.DataFrame(data)

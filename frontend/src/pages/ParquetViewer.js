@@ -728,7 +728,9 @@ const ParquetViewer = ({ selectedBucket }) => {
               </p>
               <p className="mb-1">
                 <span className="font-medium dark:text-gray-200">Filas:</span>{" "}
-                {metadata?.num_rows?.toLocaleString() || "Cargando..."}
+                {metadata?.num_rows !== undefined && metadata?.num_rows !== null 
+                  ? metadata.num_rows.toLocaleString() 
+                  : (metadata?.row_count === -1 ? "Archivo grande (>10MB)" : "Cargando...")}
               </p>
               <p>
                 <span className="font-medium dark:text-gray-200">Formato:</span>{" "}
