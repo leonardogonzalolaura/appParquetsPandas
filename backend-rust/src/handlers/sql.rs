@@ -1,12 +1,12 @@
 use actix_web::{web, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use tokio::sync::Mutex;  // ← CAMBIADO: usar tokio::sync::Mutex
 use crate::sql_engine::SqlEngine;
 
 #[derive(Debug, Deserialize)]
 pub struct SqlQueryRequest {
     pub sql: String,
-    pub limit: Option<usize>,
 }
 
 #[derive(Debug, Serialize)]
@@ -15,21 +15,27 @@ pub struct SqlQueryResponse {
     pub data: Option<Vec<serde_json::Value>>,
     pub error: Option<String>,
     pub row_count: usize,
-    pub execution_time_ms: u128,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct RegisterTableRequest {
     pub table_name: String,
-    pub s3_path: String,  // Puede ser "s3://bucket/prefix/" o "prefix/"
+    pub bucket: String,
+    pub prefix: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct RegisterTableResponse {
+    pub success: bool,
+    pub message: String,
+    pub row_count: Option<usize>,
+    pub error: Option<String>,
 }
 
 pub async fn execute_sql(
-    engine: web::Data<Arc<SqlEngine>>,
+    engine: web::Data<Arc<Mutex<SqlEngine>>>,
     req: web::Json<SqlQueryRequest>,
 ) -> impl Responder {
-    let start = std::time::Instant::now();
-    
     // Validación de seguridad
     let sql_upper = req.sql.to_uppercase();
     let dangerous = ["DROP", "DELETE", "UPDATE", "INSERT", "ALTER", "CREATE", "TRUNCATE"];
@@ -39,72 +45,63 @@ pub async fn execute_sql(
             data: None,
             error: Some("Solo consultas SELECT están permitidas".to_string()),
             row_count: 0,
-            execution_time_ms: start.elapsed().as_millis(),
         });
     }
     
-    // Agregar LIMIT si se especifica y no existe en la consulta original
-    let sql = if let Some(limit) = req.limit {
-        if !sql_upper.contains("LIMIT") {
-            format!("{} LIMIT {}", req.sql, limit)
-        } else {
-            req.sql.clone()
-        }
-    } else {
-        req.sql.clone()
-    };
+    // ← CAMBIADO: usar .await en lugar de .lock() directo
+    let engine = engine.lock().await;
     
-    println!("📊 Ejecutando SQL: {}", sql);
-    
-    match engine.execute_query(&sql).await {
+    match engine.execute_query(&req.sql).await {
         Ok(data) => {
             let row_count = data.len();
-            let execution_time = start.elapsed().as_millis();
-            println!("✅ Query completada: {} filas en {} ms", row_count, execution_time);
-            
             HttpResponse::Ok().json(SqlQueryResponse {
                 success: true,
                 data: Some(data),
                 error: None,
                 row_count,
-                execution_time_ms: execution_time,
             })
         }
         Err(e) => {
-            eprintln!("❌ SQL Error: {}", e);
-            HttpResponse::InternalServerError().json(SqlQueryResponse {
+            eprintln!("SQL Error: {}", e);
+            HttpResponse::BadRequest().json(SqlQueryResponse {
                 success: false,
                 data: None,
-                error: Some(format!("Error de consulta: {}", e)),
+                error: Some(format!("Error en consulta: {}", e)),
                 row_count: 0,
-                execution_time_ms: start.elapsed().as_millis(),
             })
         }
     }
 }
 
 pub async fn register_table(
-    engine: web::Data<Arc<SqlEngine>>,
+    engine: web::Data<Arc<Mutex<SqlEngine>>>,
     req: web::Json<RegisterTableRequest>,
 ) -> impl Responder {
-    println!("📝 Registrando tabla '{}' desde: {}", req.table_name, req.s3_path);
+    // ← CAMBIADO: usar .await
+    let mut engine = engine.lock().await;
     
-    match engine.register_parquet_table(&req.table_name, &req.s3_path).await {
-        Ok(_) => HttpResponse::Ok().json(serde_json::json!({
-            "success": true,
-            "message": format!("Tabla '{}' registrada correctamente", req.table_name),
-            "tables": engine.list_tables()
-        })),
-        Err(e) => HttpResponse::InternalServerError().json(serde_json::json!({
-            "success": false,
-            "error": format!("Error registrando tabla: {}", e)
-        }))
+    match engine.register_table(&req.table_name, &req.bucket, &req.prefix).await {
+        Ok(row_count) => HttpResponse::Ok().json(RegisterTableResponse {
+            success: true,
+            message: format!("Tabla '{}' registrada correctamente", req.table_name),
+            row_count: Some(row_count),
+            error: None,
+        }),
+        Err(e) => HttpResponse::BadRequest().json(RegisterTableResponse {
+            success: false,
+            message: format!("Error registrando tabla: {}", e),
+            row_count: None,
+            error: Some(e.to_string()),
+        })
     }
 }
 
 pub async fn list_registered_tables(
-    engine: web::Data<Arc<SqlEngine>>,
+    engine: web::Data<Arc<Mutex<SqlEngine>>>,
 ) -> impl Responder {
+    // ← CAMBIADO: usar .await
+    let engine = engine.lock().await;
+    
     let tables = engine.list_tables();
     HttpResponse::Ok().json(serde_json::json!({
         "success": true,

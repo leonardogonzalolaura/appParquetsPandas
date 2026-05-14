@@ -9,8 +9,14 @@ fn any_value_to_json(any_value: AnyValue<'_>) -> Value {
     match any_value {
         AnyValue::Null => Value::Null,
         AnyValue::Boolean(v) => Value::Bool(v),
+        AnyValue::Int8(v) => Value::Number(Number::from(v)),
+        AnyValue::Int16(v) => Value::Number(Number::from(v)),
         AnyValue::Int32(v) => Value::Number(Number::from(v)),
         AnyValue::Int64(v) => Value::Number(Number::from(v)),
+        AnyValue::UInt8(v) => Value::Number(Number::from(v)),
+        AnyValue::UInt16(v) => Value::Number(Number::from(v)),
+        AnyValue::UInt32(v) => Value::Number(Number::from(v)),
+        AnyValue::UInt64(v) => Value::Number(Number::from(v)),
         AnyValue::Float32(v) => {
             if let Some(n) = Number::from_f64(v as f64) {
                 Value::Number(n)
@@ -26,6 +32,7 @@ fn any_value_to_json(any_value: AnyValue<'_>) -> Value {
             }
         }
         AnyValue::String(v) => Value::String(v.to_string()),
+        AnyValue::StringOwned(v) => Value::String(v.to_string()),
         AnyValue::Decimal(v, scale) => {
             let scale = scale as u32;
             let value_str = v.to_string();
@@ -45,7 +52,10 @@ fn any_value_to_json(any_value: AnyValue<'_>) -> Value {
         }
         AnyValue::Date(v) => Value::String(v.to_string()),
         AnyValue::Datetime(v, _, _) => Value::Number(Number::from(v)),
-        _ => Value::String(format!("{:?}", any_value)),
+        v => {
+            // Para cualquier otro tipo, intentamos usar el Display en lugar del Debug
+            Value::String(format!("{}", v))
+        }
     }
 }
 
@@ -55,6 +65,7 @@ pub async fn read_parquet_data(
     key: &str,
     limit: usize,
     _columns: Option<&Vec<String>>,
+    filters: Option<&serde_json::Value>,
 ) -> Result<(Vec<Value>, Vec<String>, serde_json::Map<String, Value>), anyhow::Error> {
     
     info!("Leyendo archivo: s3://{}/{}", bucket, key);
@@ -70,9 +81,37 @@ pub async fn read_parquet_data(
     let bytes = data.into_bytes();
     
     let cursor = Cursor::new(bytes);
-    let df = ParquetReader::new(cursor)
-        .finish()?
-        .head(Some(limit));
+    let mut df = ParquetReader::new(cursor).finish()?;
+    
+    if let Some(f) = filters {
+        if let Some(map) = f.as_object() {
+            if !map.is_empty() {
+                let mut lf = df.lazy();
+                for (column_name, val) in map {
+                    if let Some(s) = val.as_str() {
+                        if !s.is_empty() {
+                            let lower_pat = s.to_lowercase();
+                            lf = lf.filter(
+                                col(column_name)
+                                    .cast(DataType::String)
+                                    .str()
+                                    .to_lowercase()
+                                    .str()
+                                    .contains_literal(lit(lower_pat.as_str()))
+                            );
+                        }
+                    } else if let Some(n) = val.as_f64() {
+                        lf = lf.filter(
+                            col(column_name).eq(lit(n))
+                        );
+                    }
+                }
+                df = lf.collect()?;
+            }
+        }
+    }
+    
+    let df = df.head(Some(limit));
     
     let columns: Vec<String> = df.get_column_names()
         .iter()

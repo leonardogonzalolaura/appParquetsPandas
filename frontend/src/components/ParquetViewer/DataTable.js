@@ -39,6 +39,15 @@ const DataTable = ({
   const [columnSearch, setColumnSearch] = useState("");
   const pickerRef = useRef(null);
 
+  // Paginación local
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
+
+  // Resetear página cuando cambian los datos
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [data.data]);
+
   // Cerrar picker al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -61,12 +70,27 @@ const DataTable = ({
     setSortConfig({ key, direction });
   };
 
+  const filteredData = React.useMemo(() => {
+    if (!data.data) return [];
+    
+    const activeFilters = Object.entries(filters).filter(([_, val]) => val !== undefined && val !== "");
+    if (activeFilters.length === 0) return data.data;
+
+    return data.data.filter(row => {
+      return activeFilters.every(([col, val]) => {
+        const rowVal = row[col];
+        if (rowVal === null || rowVal === undefined) return false;
+        return String(rowVal).toLowerCase().includes(String(val).toLowerCase());
+      });
+    });
+  }, [data.data, filters]);
+
   const sortedData = React.useMemo(() => {
-    if (!data.data || !sortConfig.key || !sortConfig.direction) {
-      return data.data;
+    if (!filteredData || !sortConfig.key || !sortConfig.direction) {
+      return filteredData;
     }
 
-    return [...data.data].sort((a, b) => {
+    return [...filteredData].sort((a, b) => {
       const aValue = a[sortConfig.key];
       const bValue = b[sortConfig.key];
 
@@ -83,9 +107,18 @@ const DataTable = ({
     });
   }, [data.data, sortConfig]);
 
-  // Ancho fijo para 7 columnas (150px mínimo por columna)
-  const COLUMN_MIN_WIDTH = 150;
-  const VISIBLE_COLUMNS_COUNT = 7;
+  // Datos paginados
+  const paginatedData = React.useMemo(() => {
+    if (!sortedData) return [];
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return sortedData.slice(startIndex, startIndex + itemsPerPage);
+  }, [sortedData, currentPage, itemsPerPage]);
+
+  const totalPages = sortedData ? Math.ceil(sortedData.length / itemsPerPage) : 0;
+
+  // Ancho fijo para 8 columnas (120px mínimo por columna)
+  const COLUMN_MIN_WIDTH = 120;
+  const VISIBLE_COLUMNS_COUNT = 8;
   const CONTAINER_WIDTH = VISIBLE_COLUMNS_COUNT * COLUMN_MIN_WIDTH;
 
   // Actualizar columnas visibles basadas en las seleccionadas
@@ -194,9 +227,9 @@ const DataTable = ({
         }`}
       >
         {/* Header con controles */}
-        <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 px-4 py-3 border-b border-gray-200 dark:border-gray-700 z-20">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+        <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 px-3 py-2 border-b border-gray-200 dark:border-gray-700 z-20 flex flex-col gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-3">
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 {visibleColumns.length} columnas visibles
               </span>
@@ -220,7 +253,38 @@ const DataTable = ({
               )}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Límite API (Carga de Servidor) */}
+              <div className="flex items-center space-x-2 mr-1 sm:mr-2">
+                <div className="flex items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-0.5 rounded-md shadow-sm">
+                  <span className="text-gray-500 dark:text-gray-400 text-[10px] uppercase font-bold tracking-wider mr-1">
+                    Límite API:
+                  </span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={limit}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      setLimit(isNaN(val) ? "" : val);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && file) loadFileData(file);
+                    }}
+                    className="w-16 bg-transparent border-none outline-none focus:outline-none focus:ring-0 p-0 text-[11px] text-gray-900 dark:text-gray-100 text-right font-medium"
+                    title="Cantidad de registros a traer del servidor"
+                  />
+                </div>
+
+                <button
+                  onClick={() => file && loadFileData(file)}
+                  className="flex items-center px-3 py-1 bg-primary-600 dark:bg-primary-700 text-white rounded-md hover:bg-primary-700 dark:hover:bg-primary-600 font-semibold transition-all shadow-sm active:scale-95 text-[11px]"
+                  title="Actualizar datos desde el servidor"
+                >
+                  <FiRefreshCw className="w-3 h-3 sm:mr-1.5" />
+                  <span className="hidden sm:inline">Actualizar</span>
+                </button>
+              </div>
               {/* Botón Aplicar Filtros (si hay filtros) */}
               {Object.values(filters).some(v => v) && (
                 <button
@@ -398,7 +462,7 @@ const DataTable = ({
                   {visibleColumns.map((column, index) => (
                     <th
                       key={index}
-                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider group cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                      className="px-3 py-1.5 text-left text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider group cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                       style={{
                         minWidth: `${COLUMN_MIN_WIDTH}px`,
                         maxWidth: `${COLUMN_MIN_WIDTH * 2}px`,
@@ -439,7 +503,7 @@ const DataTable = ({
                   {visibleColumns.map((column, index) => (
                     <th
                       key={`filter-${index}`}
-                      className="px-3 py-2 border-b border-gray-200 dark:border-gray-700"
+                      className="px-2 py-1 border-b border-gray-200 dark:border-gray-700"
                     >
                       <div className="relative group">
                         <FiSearch className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 group-focus-within:text-primary-500 transition-colors" />
@@ -478,8 +542,8 @@ const DataTable = ({
                       </pre>
                     </td>
                   </tr>
-                ) : sortedData && sortedData.length > 0 ? (
-                  sortedData.map((row, rowIndex) => (
+                ) : paginatedData && paginatedData.length > 0 ? (
+                  paginatedData.map((row, rowIndex) => (
                     <tr
                       key={rowIndex}
                       className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
@@ -487,7 +551,7 @@ const DataTable = ({
                       {visibleColumns.map((column, colIndex) => (
                         <td
                           key={colIndex}
-                          className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300"
+                          className="px-3 py-1.5 whitespace-nowrap text-xs text-gray-900 dark:text-gray-300"
                           style={{
                             minWidth: `${COLUMN_MIN_WIDTH}px`,
                             maxWidth: `${COLUMN_MIN_WIDTH * 2}px`,
@@ -499,7 +563,7 @@ const DataTable = ({
                                 null
                               </span>
                             ) : typeof row[column] === "object" ? (
-                              <code className="text-xs bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 p-1 rounded block truncate">
+                              <code className="text-[10px] bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 p-0.5 rounded block truncate">
                                 {JSON.stringify(row[column])}
                               </code>
                             ) : (
@@ -546,68 +610,96 @@ const DataTable = ({
         </div>
 
         {/* Footer con controles de paginación */}
-        <div className="sticky bottom-0 bg-gray-50 dark:bg-gray-900 px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
-          <div className="flex flex-col gap-3">
-            {/* Fila superior del footer: Ruta del archivo */}
-            {file?.key && (
-              <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 bg-gray-100/50 dark:bg-gray-800/50 px-2 py-1 rounded">
-                <FiFolder className="w-3.5 h-3.5 mr-2 text-gray-400 dark:text-gray-500" />
-                <span className="font-mono truncate" title={file.key}>{file.key}</span>
+        <div className="sticky bottom-0 bg-gray-50 dark:bg-gray-900 px-3 py-2 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 z-10">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-gray-600 dark:text-gray-400">
+            
+            {/* Info y Ruta */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div 
+                className="flex items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1 rounded-md shadow-sm cursor-pointer hover:border-primary-400 dark:hover:border-primary-500 transition-colors group"
+                onClick={() => {
+                  if (data.row_count && file) {
+                    setLimit(data.row_count);
+                    setTimeout(() => loadFileData(file), 0);
+                  }
+                }}
+                title="Clic para traer todos los registros"
+              >
+                <span className="font-semibold text-primary-700 dark:text-primary-400 mr-1 group-hover:underline">
+                  {filteredData.length.toLocaleString()}
+                </span>
+                <span className="text-gray-400 dark:text-gray-600 mx-1">/</span>
+                <span className="text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200 transition-colors">
+                  {data.row_count?.toLocaleString() || 0} filas totales
+                </span>
               </div>
-            )}
 
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm text-gray-600 dark:text-gray-400">
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="flex items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2.5 py-1 rounded-lg shadow-sm">
-                  <span className="font-semibold text-primary-700 dark:text-primary-400 mr-1">
-                    {Math.min(limit, data.data.length).toLocaleString()}
+              <span className="hidden sm:inline text-gray-300 dark:text-gray-700">•</span>
+              <span className="font-medium text-gray-700 dark:text-gray-300">
+                {visibleColumns.length} cols
+              </span>
+
+              {getHiddenColumnsCount() > 0 && (
+                <>
+                  <span className="hidden sm:inline text-gray-300 dark:text-gray-700">•</span>
+                  <span className="text-amber-600 font-medium">
+                    {getHiddenColumnsCount()} ocultas
                   </span>
-                  <span className="text-gray-400 dark:text-gray-600 mx-1">/</span>
-                  <span className="text-gray-600 dark:text-gray-400">
-                    {data.row_count?.toLocaleString() || 0} filas
+                </>
+              )}
+
+              {file?.key && (
+                <>
+                  <span className="hidden sm:inline text-gray-300 dark:text-gray-700">•</span>
+                  <div className="flex items-center text-[10px] text-gray-500 dark:text-gray-400 max-w-[150px] sm:max-w-[200px] truncate" title={file.key}>
+                    <FiFolder className="w-3 h-3 mr-1 flex-shrink-0" />
+                    <span className="font-mono truncate">{file.key}</span>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Controles de Paginación Local */}
+            {totalPages > 0 && (
+              <div className="flex flex-wrap items-center gap-3 self-center md:self-auto">
+                <div className="flex items-center space-x-1">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="p-1.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <FiChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="text-[11px] font-medium px-2 text-gray-600 dark:text-gray-400">
+                    Página {currentPage} de {totalPages}
                   </span>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="p-1.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <FiChevronRight className="w-4 h-4" />
+                  </button>
                 </div>
 
-                <span className="hidden sm:inline text-gray-400 dark:text-gray-600">•</span>
-
-                <span className="font-medium text-gray-700 dark:text-gray-300">
-                  {visibleColumns.length} columnas
-                </span>
-
-                {getHiddenColumnsCount() > 0 && (
-                  <>
-                    <span className="hidden sm:inline text-gray-400">•</span>
-                    <span className="text-amber-600 font-medium">
-                      {getHiddenColumnsCount()} ocultas
-                    </span>
-                  </>
-                )}
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center space-x-2">
-                  <span className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider font-semibold">Límite:</span>
+                <div className="flex items-center space-x-2 border-l border-gray-200 dark:border-gray-700 pl-3">
+                  <span className="text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400">Ver:</span>
                   <select
-                    value={limit}
-                    onChange={(e) => setLimit(parseInt(e.target.value))}
-                    className="border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 outline-none shadow-sm"
+                    value={itemsPerPage}
+                    onChange={(e) => {
+                      setItemsPerPage(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md px-1.5 py-0.5 text-[11px] text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 outline-none cursor-pointer"
                   >
                     <option value={50}>50</option>
                     <option value={100}>100</option>
+                    <option value={200}>200</option>
                     <option value={500}>500</option>
-                    <option value={1000}>1000</option>
                   </select>
                 </div>
-
-                <button
-                  onClick={() => file && loadFileData(file)}
-                  className="flex items-center px-4 py-1.5 bg-primary-600 dark:bg-primary-700 text-white rounded-md hover:bg-primary-700 dark:hover:bg-primary-600 font-semibold transition-all shadow-sm active:scale-95"
-                >
-                  <FiRefreshCw className="w-3.5 h-3.5 mr-2" />
-                  Actualizar
-                </button>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

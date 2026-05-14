@@ -20,11 +20,12 @@ pub async fn get_file_data(
     let key = &request.key;
     let limit = request.limit.unwrap_or(100);
     let columns = request.columns.as_ref();
+    let filters = request.filters.as_ref();
     
     // 📝 Log 2: Antes de llamar a S3
     info!("Llamando a read_parquet_data con bucket={}, key={}, limit={}", bucket, key, limit);
     
-    match read_parquet_data(&s3_client, bucket, key, limit, columns).await {
+    match read_parquet_data(&s3_client, bucket, key, limit, columns, filters).await {
         Ok((data, columns, dtypes)) => {
             let row_count = data.len();
             info!("✅ Éxito! Filas leídas: {}", row_count);

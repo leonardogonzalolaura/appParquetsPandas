@@ -68,23 +68,23 @@ const ParquetModal = ({
   const renderBody = () => {
     if (loading) {
       return (
-        <div className="flex flex-col items-center justify-center h-64">
-          <div className="w-12 h-12 loading-spinner mb-4" />
-          <p className="text-gray-500 dark:text-gray-400 font-medium">Leyendo archivo Parquet…</p>
-          <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Esto puede tardar unos segundos</p>
+        <div className="flex flex-col items-center justify-center h-48">
+          <div className="w-8 h-8 loading-spinner mb-3" />
+          <p className="text-gray-500 dark:text-gray-400 font-medium text-sm">Leyendo archivo Parquet…</p>
+          <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">Esto puede tardar unos segundos</p>
         </div>
       );
     }
 
     if (error) {
       return (
-        <div className="flex flex-col items-center justify-center h-64 text-center px-8">
-          <div className="w-14 h-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4">
-            <FiDatabase className="w-7 h-7 text-red-500 dark:text-red-400" />
+        <div className="flex flex-col items-center justify-center h-48 text-center px-6">
+          <div className="w-10 h-10 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-3">
+            <FiDatabase className="w-5 h-5 text-red-500 dark:text-red-400" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Error al cargar</h3>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">{error}</p>
-          <button onClick={() => file && loadFileData(file)} className="btn btn-primary">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1.5">Error al cargar</h3>
+          <p className="text-gray-500 dark:text-gray-400 text-xs mb-4">{error}</p>
+          <button onClick={() => file && loadFileData(file)} className="btn btn-primary text-xs px-3 py-1.5">
             Reintentar
           </button>
         </div>
@@ -93,7 +93,7 @@ const ParquetModal = ({
 
     if (activeTab === TAB_OVERVIEW) {
       return (
-        <div className="p-6 space-y-6">
+        <div className="p-4 space-y-4">
           <MetadataSection
             metadata={metadata}
             file={file}
@@ -108,7 +108,7 @@ const ParquetModal = ({
       return (
         <div className="flex flex-col h-full text-black dark:text-white">
           {/* Subheader de datos */}
-          <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 flex-shrink-0">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 flex-shrink-0">
             <div className="flex items-center space-x-3">
               <div className="flex items-center space-x-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-1">
                 {[
@@ -118,7 +118,7 @@ const ParquetModal = ({
                   <button
                     key={key}
                     onClick={() => setViewMode(key)}
-                    className={`flex items-center px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${viewMode === key
+                    className={`flex items-center px-2 py-1 rounded-md text-[11px] font-medium transition-colors ${viewMode === key
                       ? "bg-primary-500 text-white shadow-sm"
                       : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
                       }`}
@@ -129,7 +129,7 @@ const ParquetModal = ({
                 ))}
               </div>
               {data?.row_count != null && (
-                <span className="text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2.5 py-1 rounded-lg">
+                <span className="text-[11px] text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-0.5 rounded-md">
                   {data.row_count.toLocaleString()} filas &nbsp;·&nbsp; {data.columns?.length ?? 0} columnas
                 </span>
               )}
@@ -185,31 +185,31 @@ const ParquetModal = ({
           onClick={(e) => e.stopPropagation()}
         >
           {/* ── HEADER ─────────────────────────────────────── */}
-          <div className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
+          <div className="flex items-start justify-between px-4 pt-4 pb-3 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
             <div className="flex items-center min-w-0">
-              <div className="w-10 h-10 bg-primary-50 dark:bg-primary-900/30 rounded-xl flex items-center justify-center mr-3 flex-shrink-0">
+              <div className="w-8 h-8 bg-primary-50 dark:bg-primary-900/30 rounded-lg flex items-center justify-center mr-2.5 flex-shrink-0">
                 {file?.name.endsWith('.parquet') ? (
-                  <TbFileDatabase className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                  <TbFileDatabase className="w-4 h-4 text-primary-600 dark:text-primary-400" />
                 ) : file?.name.endsWith('.csv') ? (
-                  <FiFileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  <FiFileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 ) : file?.name.endsWith('.json') ? (
-                  <FiCode className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                  <FiCode className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                 ) : (
-                  <FiFileText className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                  <FiFileText className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                 )}
               </div>
               <div className="min-w-0">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white truncate leading-tight">
+                <h2 className="text-base font-bold text-gray-900 dark:text-white truncate leading-tight">
                   {file?.name ?? "Visualizador de Archivos"}
                 </h2>
                 {file && (
-                  <div className="flex items-center space-x-2 mt-0.5">
-                    <TbBrandAws className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
-                    <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{file.bucket}</span>
+                  <div className="flex items-center space-x-1.5 mt-0.5">
+                    <TbBrandAws className="w-3 h-3 text-orange-400 flex-shrink-0" />
+                    <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{file.bucket}</span>
                     {file.size && (
                       <>
-                        <span className="text-gray-300 dark:text-gray-600">·</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">{formatFileSize(file.size)}</span>
+                        <span className="text-gray-300 dark:text-gray-600 text-[11px]">·</span>
+                        <span className="text-[11px] text-gray-500 dark:text-gray-400">{formatFileSize(file.size)}</span>
                       </>
                     )}
                   </div>
@@ -225,7 +225,7 @@ const ParquetModal = ({
                     <button
                       key={fmt}
                       onClick={() => handleDownload(fmt)}
-                      className="flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 transition-colors"
+                      className="flex items-center px-2 py-1 text-[11px] font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 transition-colors"
                     >
                       <FiDownload className="w-3.5 h-3.5 mr-1" />
                       {fmt.toUpperCase()}
@@ -234,7 +234,7 @@ const ParquetModal = ({
                   {file.name.endsWith('.parquet') && (
                     <button
                       onClick={() => handleDownload("parquet")}
-                      className="flex items-center px-3 py-1.5 text-xs font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-600 transition-colors"
+                      className="flex items-center px-2 py-1 text-[11px] font-medium text-white bg-primary-500 rounded-md hover:bg-primary-600 transition-colors"
                     >
                       <FiDownload className="w-3.5 h-3.5 mr-1" />
                       Parquet
@@ -254,12 +254,12 @@ const ParquetModal = ({
           </div>
 
           {/* ── TABS ───────────────────────────────────────── */}
-          <div className="flex items-center px-6 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 flex-shrink-0">
+          <div className="flex items-center px-4 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 flex-shrink-0">
             {tabs.map(({ key, label, icon: Icon }) => (
               <button
                 key={key}
                 onClick={() => setActiveTab(key)}
-                className={`flex items-center px-4 py-3 text-sm font-medium border-b-2 transition-colors mr-1 ${activeTab === key
+                className={`flex items-center px-3 py-2 text-xs font-medium border-b-2 transition-colors mr-1 ${activeTab === key
                   ? "border-primary-500 text-primary-600 dark:text-primary-400"
                   : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600"
                   }`}
@@ -277,8 +277,8 @@ const ParquetModal = ({
 
           {/* ── FOOTER ─────────────────────────────────────── */}
           {file && (
-            <div className="flex items-center justify-between px-6 py-3 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex-shrink-0">
-              <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex items-center justify-between px-4 py-2 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex-shrink-0">
+              <div className="flex items-center space-x-3 text-[11px] text-gray-500 dark:text-gray-400">
                 {metadata && (
                   <>
                     <span className="flex items-center">
@@ -300,7 +300,7 @@ const ParquetModal = ({
               </div>
               <button
                 onClick={onClose}
-                className="text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700"
+                className="text-[11px] font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors px-2.5 py-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700"
               >
                 Cerrar
               </button>
