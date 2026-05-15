@@ -6,8 +6,8 @@ import {
   Navigate,
 } from "react-router-dom";
 import axios from "axios";
-import { FiRefreshCw, FiLogOut } from "react-icons/fi";
-import { TbBrandAws, TbCloudDataConnection } from "react-icons/tb";
+import { FiLogOut } from "react-icons/fi";
+import { TbBrandAws } from "react-icons/tb";
 
 // Componentes
 import Sidebar from "./components/Sidebar";

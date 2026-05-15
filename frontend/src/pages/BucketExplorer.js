@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+//import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 import { ParquetModal } from "../components/ParquetViewer";
@@ -11,7 +11,7 @@ import FileList from "../components/bucket-explorer/FileList";
 import FloatingActionBar from "../components/bucket-explorer/FloatingActionBar";
 
 const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNavigatePathDone }) => {
-  const navigate = useNavigate();
+  //const navigate = useNavigate();
   const [buckets, setBuckets] = useState([]);
   const [explorationData, setExplorationData] = useState({
     bucket: "",

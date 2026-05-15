@@ -59,7 +59,7 @@ const ParquetModal = ({
   // Resetear tab al abrir un nuevo archivo
   useEffect(() => {
     if (isOpen) setActiveTab(TAB_OVERVIEW);
-  }, [file?.key]);
+  }, [isOpen, file?.key]);
 
   if (!isOpen) return null;
 

@@ -37,7 +37,7 @@ class ProfileService {
    * Guarda un nuevo perfil
    */
   static async saveProfile(name, config) {
-    const profiles = await this.getProfiles();
+    //const profiles = await this.getProfiles();
     
     // Encriptar credenciales sensibles
     const encryptedAccessKey = await encryptData(config.accessKey);

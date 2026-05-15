@@ -1,6 +1,6 @@
 import React from "react";
 import { TbFolderFilled } from "react-icons/tb";
-import { FiChevronRight } from "react-icons/fi";
+
 
 const FolderGrid = ({ folders, onFolderClick }) => {
   if (!folders || folders.length === 0) return null;

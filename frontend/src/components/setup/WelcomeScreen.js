@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiPlus, FiServer, FiFile, FiTrash2, FiCheck, FiSettings, FiExternalLink, FiEdit2, FiX } from 'react-icons/fi';
+import { FiPlus, FiServer, FiFile, FiTrash2, FiCheck, FiExternalLink, FiEdit2, FiX } from 'react-icons/fi';
 import { TbBrandAws, TbFileDatabase } from 'react-icons/tb';
 import ProfileService from '../../services/ProfileService';
 
@@ -30,7 +30,7 @@ export default function WelcomeScreen({ onProfileSelect }) {
     e.preventDefault();
     setLoading(true);
     try {
-      const newProfile = await ProfileService.saveProfile(formData.name, formData);
+      //const newProfile = await ProfileService.saveProfile(formData.name, formData);
       await loadProfiles();
       setShowForm(false);
       setFormData({ name: '', accessKey: '', secretKey: '', region: 'us-east-1', defaultBucket: '' });
@@ -257,7 +257,7 @@ export default function WelcomeScreen({ onProfileSelect }) {
         <div className="mt-8 text-center flex items-center justify-center gap-4 text-gray-400 dark:text-gray-600 text-[10px]">
           <span className="flex items-center gap-1"><FiCheck className="text-green-500" /> Encriptación AES</span>
           <span className="flex items-center gap-1"><FiCheck className="text-green-500" /> Local Storage</span>
-          <a href="#" className="hover:text-primary-500 flex items-center gap-1 transition-colors">Doc <FiExternalLink /></a>
+          <button className="hover:text-primary-500 flex items-center gap-1 transition-colors bg-transparent border-none cursor-pointer p-0">Doc <FiExternalLink /></button>
         </div>
       </div>
 

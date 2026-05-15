@@ -1,26 +1,17 @@
 import React, { useState, useEffect } from "react";
 import {
   FiSettings,
-  FiKey,
-  FiGlobe,
-  FiBell,
   FiDatabase,
   FiSave,
   FiRefreshCw,
   FiEye,
   FiEyeOff,
-  FiCheck,
-  FiX,
-  FiHelpCircle,
-  FiShield,
   FiExternalLink,
   FiPlus,
   FiTrash2,
 } from "react-icons/fi";
 import {
   TbBrandAws,
-  TbFileDatabase,
-  TbCloudDataConnection,
 } from "react-icons/tb";
 import ProfileService from "../services/ProfileService";
 

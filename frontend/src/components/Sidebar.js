@@ -1,4 +1,3 @@
-import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   FiHome,
@@ -7,8 +6,7 @@ import {
   FiDatabase,
   FiChevronRight,
   FiChevronLeft,
-  FiUsers,
-  FiMenu,
+  FiUsers
 } from "react-icons/fi";
 import { TbBrandAws, TbFileDatabase } from "react-icons/tb";
 

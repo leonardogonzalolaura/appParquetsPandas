@@ -33,7 +33,7 @@ const DataTable = ({
   const [showRightScroll, setShowRightScroll] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState([]);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [showColumnCount, setShowColumnCount] = useState(7);
+  const [, setShowColumnCount] = useState(7);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
   const [showColumnPicker, setShowColumnPicker] = useState(false);
   const [columnSearch, setColumnSearch] = useState("");
@@ -105,7 +105,7 @@ const DataTable = ({
       }
       return 0;
     });
-  }, [data.data, sortConfig]);
+  }, [filteredData, sortConfig]);
 
   // Datos paginados
   const paginatedData = React.useMemo(() => {
@@ -119,7 +119,6 @@ const DataTable = ({
   // Ancho fijo para 8 columnas (120px mínimo por columna)
   const COLUMN_MIN_WIDTH = 120;
   const VISIBLE_COLUMNS_COUNT = 8;
-  const CONTAINER_WIDTH = VISIBLE_COLUMNS_COUNT * COLUMN_MIN_WIDTH;
 
   // Actualizar columnas visibles basadas en las seleccionadas
   useEffect(() => {
@@ -144,7 +143,7 @@ const DataTable = ({
         setSelectedColumns(initialColumns);
       }
     }
-  }, [data.columns, selectedColumns]);
+  }, [data.columns, selectedColumns, setSelectedColumns]);
 
   // Verificar scroll horizontal
   const checkScroll = () => {
