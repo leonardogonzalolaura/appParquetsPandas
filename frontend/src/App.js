@@ -73,7 +73,7 @@ function App() {
 
     // Sin buckets manuales: intentar listar todos los buckets del API
     try {
-      const response = await axios.get("/api/buckets");
+      const response = await axios.get("/buckets");
       const s3Buckets = response.data;
       setBuckets(s3Buckets);
       setStats((prev) => ({

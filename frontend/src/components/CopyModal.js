@@ -36,14 +36,14 @@ const CopyModal = ({ isOpen, onClose, file, files = [], buckets, onCopySuccess }
         setError(null);
         try {
             if (isBulk) {
-                await axios.post("/api/buckets/bulk-copy", {
+                await axios.post("/buckets/bulk-copy", {
                     source_bucket: files[0].bucket,
                     source_keys: files.map(f => f.key),
                     dest_bucket: destBucket,
                     dest_path: destPath,
                 });
             } else {
-                await axios.post("/api/buckets/copy", {
+                await axios.post("/buckets/copy", {
                     source_bucket: file.bucket,
                     source_key: file.key,
                     dest_bucket: destBucket,

@@ -128,7 +128,7 @@ const ParquetViewer = ({ selectedBucket }) => {
   const loadAvailableFiles = async (bucket = selectedBucket) => {
     try {
       console.log("Cargando archivos disponibles para bucket:", bucket);
-      const response = await axios.get(`/api/buckets/${bucket}/explore`, {
+      const response = await axios.get(`/buckets/${bucket}/explore`, {
         params: { path: "" },
       });
       console.log("Respuesta de archivos disponibles:", response.data);
@@ -144,7 +144,7 @@ const ParquetViewer = ({ selectedBucket }) => {
       console.log("Cargando archivo por defecto para bucket:", selectedBucket);
       // Load first parquet file from bucket using new explore endpoint
       const response = await axios.get(
-        `/api/buckets/${selectedBucket}/explore`,
+        `/buckets/${selectedBucket}/explore`,
       );
       console.log("Respuesta de archivo por defecto:", response.data);
 
@@ -222,7 +222,7 @@ const ParquetViewer = ({ selectedBucket }) => {
 
       // Load metadata
       console.log("Solicitando metadata...");
-      const metadataResponse = await axios.get("/api/file/metadata", {
+      const metadataResponse = await axios.get("/file/metadata", {
         params: {
           bucket: bucket,
           key: key,
@@ -233,7 +233,7 @@ const ParquetViewer = ({ selectedBucket }) => {
 
       // Load data with default limit
       console.log("Solicitando datos...");
-      const dataResponse = await axios.post("/api/file/data", {
+      const dataResponse = await axios.post("/file/data", {
         bucket: bucket,
         key: key,
         limit: limit,
@@ -295,7 +295,7 @@ const ParquetViewer = ({ selectedBucket }) => {
 
   const handleDownload = async (format) => {
     try {
-      const response = await axios.get("/api/download", {
+      const response = await axios.get("/download", {
         params: {
           bucket: file.bucket,
           key: file.key,

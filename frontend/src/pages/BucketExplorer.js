@@ -58,7 +58,7 @@ const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNaviga
   const loadBuckets = async () => {
     setLoading(true);
     try {
-      const response = await axios.get("/api/buckets");
+      const response = await axios.get("/buckets");
       setBuckets(response.data);
       setExpandedBuckets(response.data.map((b) => b.name));
     } catch (error) {
@@ -71,7 +71,7 @@ const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNaviga
   const explorePath = async (bucket, path = "") => {
     setLoading(true);
     try {
-      const response = await axios.get(`/api/buckets/${bucket}/explore`, {
+      const response = await axios.get(`/buckets/${bucket}/explore`, {
         params: { path },
       });
       setExplorationData(response.data);
@@ -162,7 +162,7 @@ const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNaviga
     if (!selectedFile) return;
 
     try {
-      const response = await axios.get("/api/download", {
+      const response = await axios.get("/download", {
         params: {
           bucket: selectedFile.bucket,
           key: selectedFile.key,
@@ -207,7 +207,7 @@ const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNaviga
 
     setFileLoading(true);
     try {
-      const dataResponse = await axios.post("/api/file/data", {
+      const dataResponse = await axios.post("/file/data", {
         bucket: selectedFile.bucket,
         key: selectedFile.key,
         limit: limit,
@@ -228,7 +228,7 @@ const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNaviga
 
     setFileLoading(true);
     try {
-      const dataResponse = await axios.post("/api/file/data", {
+      const dataResponse = await axios.post("/file/data", {
         bucket: selectedFile.bucket,
         key: selectedFile.key,
         limit: limit,
@@ -258,7 +258,7 @@ const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNaviga
     setFileError(null);
 
     try {
-      const metadataResponse = await axios.get("/api/file/metadata", {
+      const metadataResponse = await axios.get("/file/metadata", {
         params: {
           bucket: selectedBucket,
           key: file.key,
@@ -266,7 +266,7 @@ const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNaviga
       });
       setFileMetadata(metadataResponse.data);
 
-      const dataResponse = await axios.post("/api/file/data", {
+      const dataResponse = await axios.post("/file/data", {
         bucket: selectedBucket,
         key: file.key,
         limit: limit,
