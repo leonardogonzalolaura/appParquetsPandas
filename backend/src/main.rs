@@ -56,7 +56,7 @@ async fn main() -> std::io::Result<()> {
     println!("   POST   /api/sql/query     - Ejecutar consulta SQL");
     println!("   POST   /api/sql/register  - Registrar tabla Parquet desde S3");
     println!("   GET    /api/sql/tables    - Listar tablas registradas");
-    println!("\n🚀 Servidor iniciando en http://localhost:8080");
+    println!("\n🚀 Servidor iniciando en http://localhost:3015");
     println!("{}", "=".repeat(60));
     
     HttpServer::new(move || {
@@ -97,7 +97,7 @@ async fn main() -> std::io::Result<()> {
             .route("/api/sql/register", web::post().to(handlers::sql::register_table))
             .route("/api/sql/tables", web::get().to(handlers::sql::list_registered_tables))
     })
-    .bind(("0.0.0.0", 8000))?
+    .bind(("0.0.0.0", 3015))?
     .run()
     .await
 }
