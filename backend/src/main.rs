@@ -53,9 +53,9 @@ async fn main() -> std::io::Result<()> {
     println!("AWS Region: {}", config.aws_region);
     println!("Predefined buckets: {:?}", config.predefined_buckets);
     println!("\n📊 SQL Endpoints (usando DataFusion):");
-    println!("   POST   /api/sql/query      - Ejecutar consulta SQL");
-    println!("   POST   /api/sql/register   - Registrar tabla Parquet desde S3");
-    println!("   GET    /api/sql/tables     - Listar tablas registradas");
+    println!("   POST   /api/sql/query     - Ejecutar consulta SQL");
+    println!("   POST   /api/sql/register  - Registrar tabla Parquet desde S3");
+    println!("   GET    /api/sql/tables    - Listar tablas registradas");
     println!("\n🚀 Servidor iniciando en http://localhost:8080");
     println!("{}", "=".repeat(60));
     
