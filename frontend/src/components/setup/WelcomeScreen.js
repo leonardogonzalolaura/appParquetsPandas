@@ -30,7 +30,7 @@ export default function WelcomeScreen({ onProfileSelect }) {
     e.preventDefault();
     setLoading(true);
     try {
-      //const newProfile = await ProfileService.saveProfile(formData.name, formData);
+      await ProfileService.saveProfile(formData.name, formData);
       await loadProfiles();
       setShowForm(false);
       setFormData({ name: '', accessKey: '', secretKey: '', region: 'us-east-1', defaultBucket: '' });

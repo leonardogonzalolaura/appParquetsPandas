@@ -92,6 +92,30 @@ class ProfileService {
   }
 
   /**
+   * Actualiza un perfil existente (re-encripta las credenciales)
+   */
+  static async updateProfile(id, config) {
+    const raw = localStorage.getItem(PROFILES_STORAGE_KEY);
+    if (!raw) return;
+    const list = JSON.parse(raw);
+    const idx = list.findIndex(p => p.id === id);
+    if (idx === -1) return;
+
+    const encryptedAccessKey = await encryptData(config.accessKey);
+    const encryptedSecretKey = await encryptData(config.secretKey);
+
+    list[idx] = {
+      ...list[idx],
+      name: config.name,
+      region: config.region,
+      defaultBucket: config.defaultBucket || '',
+      accessKey: encryptedAccessKey,
+      secretKey: encryptedSecretKey,
+    };
+    localStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(list));
+  }
+
+  /**
    * Actualiza los buckets de un perfil existente
    */
   static updateProfileBuckets(id, defaultBucket) {

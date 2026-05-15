@@ -1,0 +1,48 @@
+name: Deploy Frontend to Lightsail
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'frontend/**'
+
+jobs:
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v3
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: 📦 Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: 🏗️ Build frontend
+        working-directory: ./frontend
+        run: npm run build
+        env:
+          REACT_APP_API_URL: https://apps3browser.atechlo.com/api
+
+      - name: 🚀 Deploy frontend to Lightsail
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          source: "frontend/build/*"
+          target: "/var/www/apps3browser/html"
+          strip_components: 2
+
+      - name: ✅ Frontend deployment summary
+        run: |
+          echo "========================================="
+          echo "🎉 Frontend deployed successfully!"
+          echo "========================================="
+          echo "📁 Frontend: /var/www/apps3browser/html"
+          echo "========================================="
