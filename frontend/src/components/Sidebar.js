@@ -99,10 +99,14 @@ const Sidebar = ({ buckets, selectedBucket, onBucketSelect, stats, collapsed, on
                   }`}
                 >
                   <div className="flex items-center min-w-0">
-                    <TbBrandAws className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
+                    <TbBrandAws className={`w-3.5 h-3.5 mr-1.5 flex-shrink-0 ${bucket.isManual ? "text-yellow-500" : ""}`} />
                     <span className="truncate">{name}</span>
+                    {bucket.isManual && (
+                      <span className="ml-1.5 w-1.5 h-1.5 rounded-full bg-yellow-500 flex-shrink-0" title="Manual" />
+                    )}
                   </div>
                   <FiChevronRight className="w-3.5 h-3.5 flex-shrink-0" />
+
                 </button>
               );
             })}

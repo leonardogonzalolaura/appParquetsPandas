@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   FiSettings,
   FiKey,
@@ -14,14 +14,17 @@ import {
   FiHelpCircle,
   FiShield,
   FiExternalLink,
+  FiPlus,
+  FiTrash2,
 } from "react-icons/fi";
 import {
   TbBrandAws,
   TbFileDatabase,
   TbCloudDataConnection,
 } from "react-icons/tb";
+import ProfileService from "../services/ProfileService";
 
-const Settings = () => {
+const Settings = ({ activeProfile, onProfileBucketsUpdate }) => {
   const [activeTab, setActiveTab] = useState("aws");
   const [showApiKey, setShowApiKey] = useState(false);
   const [settings, setSettings] = useState({
@@ -50,8 +53,40 @@ const Settings = () => {
     }));
   };
 
+  const [bucketList, setBucketList] = useState([]);
+  const [newBucket, setNewBucket] = useState("");
+
+  useEffect(() => {
+    if (activeProfile?.defaultBucket) {
+      setBucketList(
+        activeProfile.defaultBucket.split(",").map(b => b.trim()).filter(Boolean)
+      );
+    }
+  }, [activeProfile]);
+
+  const handleAddBucket = () => {
+    const name = newBucket.trim();
+    if (!name || bucketList.includes(name)) return;
+    const updated = [...bucketList, name];
+    setBucketList(updated);
+    setNewBucket("");
+    saveBuckets(updated);
+  };
+
+  const handleRemoveBucket = (bucket) => {
+    const updated = bucketList.filter(b => b !== bucket);
+    setBucketList(updated);
+    saveBuckets(updated);
+  };
+
+  const saveBuckets = (list) => {
+    if (!activeProfile?.id) return;
+    const joined = list.join(",");
+    ProfileService.updateProfileBuckets(activeProfile.id, joined);
+    if (onProfileBucketsUpdate) onProfileBucketsUpdate(list);
+  };
+
   const handleSaveSettings = () => {
-    // Simular guardado
     localStorage.setItem("aws_region", settings.aws.region);
     localStorage.setItem("app_theme", settings.application.theme);
     alert("Configuración guardada exitosamente");
@@ -77,8 +112,60 @@ const Settings = () => {
     }
   };
 
+  const renderBucketManager = () => (
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+      <div className="flex items-center mb-4">
+        <FiDatabase className="w-5 h-5 text-primary-500 mr-3" />
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          Buckets del perfil: <span className="text-primary-500">{activeProfile?.name}</span>
+        </h3>
+      </div>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+        Estos buckets se usan directamente sin intentar listar todos los buckets de la cuenta.
+      </p>
+
+      <div className="flex gap-2 mb-4">
+        <input
+          type="text"
+          value={newBucket}
+          onChange={e => setNewBucket(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && handleAddBucket()}
+          placeholder="nombre-del-bucket"
+          className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+        />
+        <button
+          onClick={handleAddBucket}
+          className="btn btn-primary flex items-center px-3 py-2 text-sm"
+        >
+          <FiPlus className="w-4 h-4 mr-1" /> Agregar
+        </button>
+      </div>
+
+      <div className="space-y-2">
+        {bucketList.length === 0 ? (
+          <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">
+            Sin buckets configurados — se intentará listar todos los buckets de la cuenta.
+          </p>
+        ) : (
+          bucketList.map(bucket => (
+            <div key={bucket} className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <span className="text-sm font-mono text-gray-800 dark:text-gray-200">{bucket}</span>
+              <button
+                onClick={() => handleRemoveBucket(bucket)}
+                className="text-gray-400 hover:text-red-500 transition-colors"
+              >
+                <FiTrash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+
   const renderAWSSettings = () => (
     <div className="space-y-6">
+      {activeProfile && renderBucketManager()}
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
         <div className="flex items-center mb-6">
           <TbBrandAws className="w-6 h-6 text-orange-500 mr-3" />

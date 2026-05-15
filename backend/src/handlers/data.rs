@@ -1,15 +1,20 @@
-// src/handlers/data.rs
-use actix_web::{post, web, HttpResponse, Responder};
+use actix_web::{post, web, HttpResponse, Responder, HttpRequest};
 use crate::models::ParquetDataRequest;
 use crate::s3_client::S3Client;
 use crate::parquet_parser::read_parquet_data;
+use crate::handlers::get_s3_client;
+use crate::config::Config;
 use log::{info, error};
 
 #[post("/api/file/data")]
 pub async fn get_file_data(
+    req: HttpRequest,
     request: web::Json<ParquetDataRequest>,
-    s3_client: web::Data<S3Client>,
+    default_s3: web::Data<S3Client>,
+    config: web::Data<Config>,
 ) -> impl Responder {
+    let s3_client = get_s3_client(&req, &default_s3, &config).await;
+
     // 📝 Log 1: Request recibido
     info!("=== INICIO get_file_data ===");
     info!("Request bucket: {}", request.bucket);

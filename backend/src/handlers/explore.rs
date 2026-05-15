@@ -1,7 +1,9 @@
-use actix_web::{get, web, HttpResponse, Responder};
+use actix_web::{get, web, HttpResponse, Responder, HttpRequest};
 use serde::Deserialize;
 use crate::models::{ExploreResponse, FolderItem, FileItem};
 use crate::s3_client::S3Client;
+use crate::handlers::get_s3_client;
+use crate::config::Config;
 
 #[derive(Debug, Deserialize)]
 pub struct ExploreQuery {
@@ -10,10 +12,14 @@ pub struct ExploreQuery {
 
 #[get("/api/buckets/{bucket}/explore")]
 pub async fn explore_bucket(
+    req: HttpRequest,
     bucket: web::Path<String>,
     query: web::Query<ExploreQuery>,
-    s3_client: web::Data<S3Client>,
+    default_s3: web::Data<S3Client>,
+    config: web::Data<Config>,
 ) -> impl Responder {
+    let s3_client = get_s3_client(&req, &default_s3, &config).await;
+
     let bucket_name = bucket.into_inner();
     let raw_path = query.path.as_deref().unwrap_or("");
     let normalized_path = raw_path.trim_matches('/');

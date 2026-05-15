@@ -1,0 +1,130 @@
+name: Deploy to Lightsail
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v3
+
+      # ========== FRONTEND (Create React App) ==========
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'  
+
+      - name: 📦 Install frontend dependencies
+        working-directory: ./frontend
+        run: |
+          npm ci  # Más rápido y confiable que npm install
+          # O usa npm install si prefieres
+
+      - name: 🏗️ Build frontend
+        working-directory: ./frontend
+        run: npm run build
+        env:
+          # IMPORTANTE: Para producción, el proxy NO funciona
+          REACT_APP_API_URL: https://apps3browser.atechlo.com/api
+
+      - name: 🚀 Deploy frontend to Lightsail
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          source: "frontend/build/*"  
+          target: "/var/www/apps3browser/html"
+          strip_components: 2  
+
+      # ========== BACKEND (Rust) ==========
+      - name: 🦀 Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: x86_64-unknown-linux-gnu
+          override: true
+
+      - name: 💾 Cache cargo dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            backend/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('backend/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: 🏗️ Build Rust backend
+        working-directory: ./backend
+        run: cargo build --release
+
+      - name: 📤 Upload Rust binary to Lightsail
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          source: "backend/target/release/s3-parquet-explorer"
+          target: "/var/www/apps3browser/backend"
+          strip_components: 3
+
+      - name: 🔧 Setup and start Rust service
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # Dar permisos al binario
+            chmod +x /var/www/apps3browser/backend/s3-parquet-explorer
+            
+           
+            # Crear servicio systemd
+            sudo tee /etc/systemd/system/apps3browser-backend.service > /dev/null << 'EOF'
+            [Unit]
+            Description=S3 Parquet Explorer Backend
+            After=network.target
+            
+            [Service]
+            Type=simple
+            User=ubuntu
+            WorkingDirectory=/var/www/apps3browser/backend
+            ExecStart=/var/www/apps3browser/backend/s3-parquet-explorer
+            Restart=always
+            RestartSec=10
+            MemoryMax=512M
+            Environment="RUST_LOG=info"
+            
+            [Install]
+            WantedBy=multi-user.target
+            EOF
+            
+            sudo systemctl daemon-reload
+            sudo systemctl enable apps3browser-backend
+            sudo systemctl restart apps3browser-backend
+            
+            sleep 3
+            echo "📊 Service status:"
+            sudo systemctl status apps3browser-backend --no-pager
+            
+            echo ""
+            echo "✅ Deployment completed at $(date)"
+            echo "📍 Frontend: /var/www/apps3browser/html"
+            echo "📍 Backend: /var/www/apps3browser/backend/s3-parquet-explorer"
+            echo "🚀 Service: apps3browser-backend"
+
+      - name: ✅ Deployment summary
+        run: |
+          echo "========================================="
+          echo "🎉 Deployment completed successfully!"
+          echo "========================================="
+          echo "📁 Frontend: /var/www/apps3browser/html"
+          echo "🦀 Backend: /var/www/apps3browser/backend/s3-parquet-explorer"
+          echo "========================================="

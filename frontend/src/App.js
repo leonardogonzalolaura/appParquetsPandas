@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -6,7 +6,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import axios from "axios";
-import { FiRefreshCw } from "react-icons/fi";
+import { FiRefreshCw, FiLogOut } from "react-icons/fi";
 import { TbBrandAws, TbCloudDataConnection } from "react-icons/tb";
 
 // Componentes
@@ -15,14 +15,16 @@ import Header from "./components/Header";
 import BucketExplorer from "./pages/BucketExplorer";
 import Settings from "./pages/Settings";
 import Dashboard from "./pages/Dashboard";
+import WelcomeScreen from "./components/setup/WelcomeScreen";
 import ErrorBoundary from "./components/ErrorBoundary";
+import ProfileService from "./services/ProfileService";
 
 // Configuración de axios
-axios.defaults.baseURL =
-  process.env.REACT_APP_API_URL || "http://localhost:8000";
+axios.defaults.baseURL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 axios.defaults.headers.common["Content-Type"] = "application/json";
 
 function App() {
+  const [activeProfile, setActiveProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState("checking");
   const [buckets, setBuckets] = useState([]);
@@ -36,44 +38,123 @@ function App() {
     lastSync: null,
   });
 
-  // Verificar conexión al backend
+  // Configurar interceptores de axios para enviar credenciales del perfil activo
   useEffect(() => {
-    const checkConnection = async () => {
-      try {
-        const response = await axios.get("/health");
-        if (response.data.status === "healthy") {
-          setConnectionStatus("connected");
-
-          // Cargar buckets
-          await loadBuckets();
-        } else {
-          setConnectionStatus("error");
-        }
-      } catch (error) {
-        console.error("Error de conexión:", error);
-        setConnectionStatus("error");
-      } finally {
-        setIsLoading(false);
+    const interceptor = axios.interceptors.request.use(async (config) => {
+      const profile = await ProfileService.getActiveProfile();
+      if (profile) {
+        config.headers["x-aws-access-key"] = profile.accessKey;
+        config.headers["x-aws-secret-key"] = profile.secretKey;
+        config.headers["x-aws-region"] = profile.region;
       }
-    };
+      return config;
+    });
 
-    checkConnection();
-  }, []);
+    return () => axios.interceptors.request.eject(interceptor);
+  }, [activeProfile]);
 
-  const loadBuckets = async () => {
-    try {
-      const response = await axios.get("/api/buckets");
-      setBuckets(response.data);
-
-      // Actualizar estadísticas
+  const loadBuckets = useCallback(async (manualBuckets = []) => {
+    // Si el perfil tiene buckets configurados, usarlos directamente sin llamar al API
+    if (manualBuckets.length > 0) {
+      const profileBuckets = manualBuckets.map(mb => ({
+        name: mb,
+        creation_date: new Date().toISOString(),
+        isManual: true
+      }));
+      setBuckets(profileBuckets);
       setStats((prev) => ({
         ...prev,
-        totalBuckets: response.data.length,
+        totalBuckets: profileBuckets.length,
         lastSync: new Date().toISOString(),
       }));
+      setConnectionStatus("connected");
+      return true;
+    }
+
+    // Sin buckets manuales: intentar listar todos los buckets del API
+    try {
+      const response = await axios.get("/api/buckets");
+      const s3Buckets = response.data;
+      setBuckets(s3Buckets);
+      setStats((prev) => ({
+        ...prev,
+        totalBuckets: s3Buckets.length,
+        lastSync: new Date().toISOString(),
+      }));
+      setConnectionStatus("connected");
+      return true;
     } catch (error) {
       console.error("Error al cargar buckets:", error);
+      setConnectionStatus("error");
+      const errorMsg = error.response?.data?.detail || error.message;
+      throw new Error(errorMsg);
     }
+  }, []);
+
+  const checkInitialProfile = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const profile = await ProfileService.getActiveProfile();
+      if (profile) {
+        setActiveProfile(profile);
+        // Procesar buckets manuales (separados por coma)
+        const manualList = profile.defaultBucket 
+          ? profile.defaultBucket.split(',').map(b => b.trim()).filter(b => b)
+          : [];
+        
+        await loadBuckets(manualList);
+        
+        if (manualList.length > 0 && !selectedBucket) {
+          setSelectedBucket(manualList[0]);
+        }
+      } else {
+        setActiveProfile(null);
+      }
+    } catch (error) {
+      console.error("Fallo al inicializar perfil:", error);
+      setActiveProfile(null);
+      ProfileService.setActiveProfile(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [loadBuckets, selectedBucket]);
+
+  useEffect(() => {
+    checkInitialProfile();
+  }, [checkInitialProfile]);
+
+  const handleProfileSelect = async (id) => {
+    setIsLoading(true);
+    try {
+      await ProfileService.setActiveProfile(id);
+      const profile = await ProfileService.getActiveProfile();
+      setActiveProfile(profile);
+      
+      const manualList = profile.defaultBucket 
+        ? profile.defaultBucket.split(',').map(b => b.trim()).filter(b => b)
+        : [];
+
+      await loadBuckets(manualList);
+      
+      if (manualList.length > 0) {
+        setSelectedBucket(manualList[0]);
+      }
+    } catch (error) {
+      alert(`Error de conexión S3: ${error.message}`);
+      setActiveProfile(null);
+      ProfileService.setActiveProfile(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
+
+  const handleLogout = () => {
+    ProfileService.setActiveProfile(null);
+    setActiveProfile(null);
+    setBuckets([]);
+    setSelectedBucket(null);
   };
 
   const handleBucketSelect = (bucket) => {
@@ -93,59 +174,18 @@ function App() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 loading-spinner mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-2">
-            Conectando con S3...
-          </h2>
-          <p className="text-gray-500 dark:text-gray-400">
-            Verificando credenciales y cargando buckets
-          </p>
+          <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-500 dark:text-gray-400 font-medium">Iniciando sesión segura...</p>
         </div>
       </div>
     );
   }
 
-  if (connectionStatus === "error") {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-        <div className="max-w-md w-full text-center">
-          <div className="w-20 h-20 bg-danger-100 dark:bg-danger-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
-            <TbCloudDataConnection className="w-10 h-10 text-danger-600 dark:text-danger-400" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-            Error de Conexión
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            No se pudo conectar con el servidor backend. Por favor verifica:
-          </p>
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 text-left mb-6 border border-gray-200 dark:border-gray-700">
-            <ul className="space-y-3">
-              <li className="flex items-center">
-                <div className="w-2 h-2 bg-danger-500 rounded-full mr-3"></div>
-                <span>El servidor backend está ejecutándose</span>
-              </li>
-              <li className="flex items-center">
-                <div className="w-2 h-2 bg-danger-500 rounded-full mr-3"></div>
-                <span>Las credenciales AWS están configuradas</span>
-              </li>
-              <li className="flex items-center">
-                <div className="w-2 h-2 bg-danger-500 rounded-full mr-3"></div>
-                <span>La URL del API es correcta</span>
-              </li>
-            </ul>
-          </div>
-          <button
-            onClick={() => window.location.reload()}
-            className="btn btn-primary w-full"
-          >
-            <FiRefreshCw className="mr-2" />
-            Reintentar Conexión
-          </button>
-        </div>
-      </div>
-    );
+  // Si no hay perfil activo, mostramos la pantalla de bienvenida
+  if (!activeProfile) {
+    return <WelcomeScreen onProfileSelect={handleProfileSelect} />;
   }
 
   return (
@@ -167,14 +207,13 @@ function App() {
               onRefresh={handleRefresh}
               connectionStatus={connectionStatus}
               onNavigatePath={handleNavigatePath}
+              activeProfile={activeProfile}
+              onLogout={handleLogout}
             />
 
             <main className="flex-1 p-6 overflow-auto">
               <Routes>
-                <Route
-                  path="/"
-                  element={<Navigate to="/dashboard" replace />}
-                />
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route
                   path="/dashboard"
                   element={
@@ -196,38 +235,47 @@ function App() {
                     />
                   }
                 />
-                <Route path="/settings" element={<Settings />} />
+                <Route path="/settings" element={
+                    <Settings
+                      activeProfile={activeProfile}
+                      onProfileBucketsUpdate={(list) => {
+                        const updated = list.map(name => ({
+                          name,
+                          creation_date: new Date().toISOString(),
+                          isManual: true
+                        }));
+                        setBuckets(updated);
+                        if (updated.length > 0 && !selectedBucket) {
+                          setSelectedBucket(updated[0].name);
+                        }
+                      }}
+                    />
+                  } />
               </Routes>
             </main>
 
-            <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-6 py-4">
-              <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center">
-                    <TbBrandAws className="w-4 h-4 mr-2" />
-                    <span>S3 Parquet Explorer v1.0.0</span>
+            <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-6 py-3">
+              <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                <div className="flex items-center space-x-6">
+                  <div className="flex items-center font-medium text-gray-700 dark:text-gray-300">
+                    <TbBrandAws className="w-4 h-4 mr-1.5 text-orange-500" />
+                    <span>{activeProfile.name} ({activeProfile.region})</span>
                   </div>
                   <div className="flex items-center">
-                    <div
-                      className={`w-2 h-2 rounded-full mr-2 ${connectionStatus === "connected"
-                        ? "bg-success-500"
-                        : "bg-danger-500"
-                        }`}
-                    ></div>
-                    <span>
-                      {connectionStatus === "connected"
-                        ? "Conectado"
-                        : "Desconectado"}
-                    </span>
+                    <div className={`w-2 h-2 rounded-full mr-2 ${connectionStatus === "connected" ? "bg-success-500" : "bg-danger-500"}`}></div>
+                    <span>{connectionStatus === "connected" ? "Conectado" : "Error de red"}</span>
                   </div>
                 </div>
-                <div>
+                <div className="flex items-center gap-4">
                   {stats.lastSync && (
-                    <span>
-                      Última sincronización:{" "}
-                      {new Date(stats.lastSync).toLocaleTimeString()}
-                    </span>
+                    <span>Sincronizado: {new Date(stats.lastSync).toLocaleTimeString()}</span>
                   )}
+                  <button 
+                    onClick={handleLogout}
+                    className="flex items-center gap-1.5 px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors text-red-500 font-medium"
+                  >
+                    <FiLogOut className="w-3.5 h-3.5" /> Salir
+                  </button>
                 </div>
               </div>
             </footer>
@@ -239,3 +287,4 @@ function App() {
 }
 
 export default App;
+

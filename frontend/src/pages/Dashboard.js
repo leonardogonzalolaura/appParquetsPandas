@@ -85,7 +85,7 @@ const Dashboard = ({ buckets = [], stats = {}, onBucketSelect }) => {
             <p className="text-xs text-gray-500 dark:text-gray-400">Estado del backend</p>
             <p className="text-xs text-gray-400 flex items-center mt-0.5">
               <FiHardDrive className="w-3 h-3 mr-1" />
-              localhost:8080
+              localhost:8000
             </p>
           </div>
         </div>

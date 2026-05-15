@@ -52,13 +52,13 @@ logs/
 # ============================================================
 
 # Archivos compilados (binarios y librerías)
-backend-rust/target/
-backend-rust/**/target/
+backend/target/
+backend/**/target/
 
 # Archivo Cargo.lock (OPCIONAL: comenta si es una aplicación/binary, descomenta si es una biblioteca)
 # Para aplicaciones binarias, generalmente se incluye Cargo.lock en el repo
 # Para bibliotecas, es mejor ignorarlo
-# backend-rust/Cargo.lock
+# backend/Cargo.lock
 
 # Archivos generados por rustc/servidores
 *.rs.bk

@@ -1,9 +1,10 @@
-// src/handlers/metadata.rs
-use actix_web::{get, web, HttpResponse, Responder};
+use actix_web::{get, web, HttpResponse, Responder, HttpRequest};
 use serde::Deserialize;
 use crate::models::FileMetadata;
 use crate::s3_client::S3Client;
-use crate::parquet_parser::get_parquet_metadata;  // ← Importar la nueva función
+use crate::parquet_parser::get_parquet_metadata;
+use crate::handlers::get_s3_client;
+use crate::config::Config;
 use log::info;
 
 #[derive(Debug, Deserialize)]
@@ -14,9 +15,13 @@ pub struct MetadataQuery {
 
 #[get("/api/file/metadata")]
 pub async fn get_file_metadata(
+    req: HttpRequest,
     query: web::Query<MetadataQuery>,
-    s3_client: web::Data<S3Client>,
+    default_s3: web::Data<S3Client>,
+    config: web::Data<Config>,
 ) -> impl Responder {
+    let s3_client = get_s3_client(&req, &default_s3, &config).await;
+
     let bucket = &query.bucket;
     let key = &query.key;
     
