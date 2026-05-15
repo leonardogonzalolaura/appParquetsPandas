@@ -21,7 +21,13 @@ import ProfileService from "./services/ProfileService";
 
 // Configuración de axios
 axios.defaults.baseURL = process.env.REACT_APP_API_URL || "http://localhost:8000";
-axios.defaults.headers.common["Content-Type"] = "application/json";
+axios.interceptors.request.use(config => {
+  // Solo agregar Content-Type para métodos que tengan body
+  if (config.method !== 'get' && config.method !== 'delete') {
+    config.headers['Content-Type'] = 'application/json';
+  }
+  return config;
+});
 
 function App() {
   const [activeProfile, setActiveProfile] = useState(null);
