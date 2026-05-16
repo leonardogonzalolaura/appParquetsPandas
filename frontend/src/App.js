@@ -20,7 +20,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import ProfileService from "./services/ProfileService";
 
 // Configuración de axios
-axios.defaults.baseURL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+axios.defaults.baseURL = process.env.REACT_APP_API_URL || "http://localhost:3015/api/";
 axios.interceptors.request.use(config => {
   // Solo agregar Content-Type para métodos que tengan body
   if (config.method !== 'get' && config.method !== 'delete') {
@@ -104,12 +104,12 @@ function App() {
       if (profile) {
         setActiveProfile(profile);
         // Procesar buckets manuales (separados por coma)
-        const manualList = profile.defaultBucket 
+        const manualList = profile.defaultBucket
           ? profile.defaultBucket.split(',').map(b => b.trim()).filter(b => b)
           : [];
-        
+
         await loadBuckets(manualList);
-        
+
         if (manualList.length > 0 && !selectedBucket) {
           setSelectedBucket(manualList[0]);
         }
@@ -135,13 +135,13 @@ function App() {
       await ProfileService.setActiveProfile(id);
       const profile = await ProfileService.getActiveProfile();
       setActiveProfile(profile);
-      
-      const manualList = profile.defaultBucket 
+
+      const manualList = profile.defaultBucket
         ? profile.defaultBucket.split(',').map(b => b.trim()).filter(b => b)
         : [];
 
       await loadBuckets(manualList);
-      
+
       if (manualList.length > 0) {
         setSelectedBucket(manualList[0]);
       }
@@ -242,21 +242,21 @@ function App() {
                   }
                 />
                 <Route path="/settings" element={
-                    <Settings
-                      activeProfile={activeProfile}
-                      onProfileBucketsUpdate={(list) => {
-                        const updated = list.map(name => ({
-                          name,
-                          creation_date: new Date().toISOString(),
-                          isManual: true
-                        }));
-                        setBuckets(updated);
-                        if (updated.length > 0 && !selectedBucket) {
-                          setSelectedBucket(updated[0].name);
-                        }
-                      }}
-                    />
-                  } />
+                  <Settings
+                    activeProfile={activeProfile}
+                    onProfileBucketsUpdate={(list) => {
+                      const updated = list.map(name => ({
+                        name,
+                        creation_date: new Date().toISOString(),
+                        isManual: true
+                      }));
+                      setBuckets(updated);
+                      if (updated.length > 0 && !selectedBucket) {
+                        setSelectedBucket(updated[0].name);
+                      }
+                    }}
+                  />
+                } />
               </Routes>
             </main>
 
@@ -276,7 +276,7 @@ function App() {
                   {stats.lastSync && (
                     <span>Sincronizado: {new Date(stats.lastSync).toLocaleTimeString()}</span>
                   )}
-                  <button 
+                  <button
                     onClick={handleLogout}
                     className="flex items-center gap-1.5 px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors text-red-500 font-medium"
                   >
