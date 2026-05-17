@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FiSearch,
@@ -10,15 +10,33 @@ import {
   FiSun,
   FiMoon,
   FiLogOut,
+  FiServer,
+  FiCheck,
 } from "react-icons/fi";
 import { useTheme } from "../context/ThemeContext";
 import { TbBrandAws } from "react-icons/tb";
+import ProfileService from "../services/ProfileService";
 
-const Header = ({ selectedBucket, onRefresh, connectionStatus, onNavigatePath, activeProfile, onLogout }) => {
+const Header = ({ selectedBucket, onRefresh, connectionStatus, onNavigatePath, activeProfile, onLogout, onProfileSelect }) => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [profiles, setProfiles] = useState([]);
+
+  useEffect(() => {
+    const loadProfiles = async () => {
+      try {
+        const list = await ProfileService.getProfiles();
+        setProfiles(list);
+      } catch (e) {
+        console.error("Error loading profiles in Header:", e);
+      }
+    };
+    if (showProfileMenu) {
+      loadProfiles();
+    }
+  }, [showProfileMenu, activeProfile]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -125,21 +143,68 @@ const Header = ({ selectedBucket, onRefresh, connectionStatus, onNavigatePath, a
             </button>
 
             {showProfileMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 py-1 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 py-1 animate-in fade-in slide-in-from-top-2 duration-200">
                 <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700">
                   <p className="text-xs text-gray-500 dark:text-gray-400">Sesión activa</p>
                   <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{activeProfile?.name}</p>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider">{activeProfile?.region}</p>
                 </div>
-                <button className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                  <FiSettings className="w-4 h-4" /> Configuración
+                
+                {/* Lista de perfiles */}
+                {profiles.length > 0 && (
+                  <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700 max-h-48 overflow-y-auto custom-scrollbar">
+                    <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">
+                      Cambiar Perfil
+                    </p>
+                    <div className="space-y-1">
+                      {profiles.map((p) => {
+                        const isActive = p.id === activeProfile?.id;
+                        return (
+                          <button
+                            key={p.id}
+                            onClick={() => {
+                              if (!isActive && onProfileSelect) {
+                                onProfileSelect(p.id);
+                                setShowProfileMenu(false);
+                              }
+                            }}
+                            disabled={isActive}
+                            className={`w-full flex items-center justify-between p-2 rounded-lg text-left transition-all ${
+                              isActive
+                                ? "bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 font-medium cursor-default"
+                                : "hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <FiServer className={`w-3.5 h-3.5 flex-shrink-0 ${isActive ? "text-primary-500" : "text-gray-400"}`} />
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold truncate leading-tight">{p.name}</p>
+                                <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase leading-none">{p.region}</p>
+                              </div>
+                            </div>
+                            {isActive && <FiCheck className="w-3.5 h-3.5 text-primary-500 flex-shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  onClick={() => {
+                    navigate("/settings");
+                    setShowProfileMenu(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <FiSettings className="w-4 h-4" /> Administrar Perfiles
                 </button>
-                <button className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                  <FiHelpCircle className="w-4 h-4" /> Ayuda
-                </button>
+                
                 <div className="h-px bg-gray-100 dark:bg-gray-700 my-1" />
+                
                 <button 
                   onClick={onLogout}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors font-medium"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors font-medium"
                 >
                   <FiLogOut className="w-4 h-4" /> Cerrar Sesión
                 </button>

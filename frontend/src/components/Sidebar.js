@@ -36,11 +36,7 @@ const Sidebar = ({ buckets, selectedBucket, onBucketSelect, stats, collapsed, on
             </div>
           </div>
         )}
-        {collapsed && (
-          <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg flex items-center justify-center">
-            <TbFileDatabase className="w-4 h-4 text-white" />
-          </div>
-        )}
+
         <button
           onClick={onToggleCollapse}
           className={`p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors flex-shrink-0 ${collapsed ? "mt-0" : ""}`}
@@ -90,11 +86,10 @@ const Sidebar = ({ buckets, selectedBucket, onBucketSelect, stats, collapsed, on
                 <button
                   key={name}
                   onClick={() => onBucketSelect(name)}
-                  className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs transition-colors duration-200 ${
-                    selectedBucket === name
-                      ? "bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-200 border border-primary-200 dark:border-primary-800"
-                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-                  }`}
+                  className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs transition-colors duration-200 ${selectedBucket === name
+                    ? "bg-primary-100 dark:bg-primary-900/50 text-primary-800 dark:text-primary-200 border border-primary-200 dark:border-primary-800"
+                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    }`}
                 >
                   <div className="flex items-center min-w-0">
                     <TbBrandAws className={`w-3.5 h-3.5 mr-1.5 flex-shrink-0 ${bucket.isManual ? "text-yellow-500" : ""}`} />
@@ -125,11 +120,10 @@ const Sidebar = ({ buckets, selectedBucket, onBucketSelect, stats, collapsed, on
                 key={name}
                 onClick={() => onBucketSelect(name)}
                 title={name}
-                className={`w-full flex items-center justify-center p-2 rounded-lg transition-colors duration-200 ${
-                  selectedBucket === name
-                    ? "bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300"
-                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-                }`}
+                className={`w-full flex items-center justify-center p-2 rounded-lg transition-colors duration-200 ${selectedBucket === name
+                  ? "bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300"
+                  : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  }`}
               >
                 <TbBrandAws className="w-4 h-4" />
               </button>

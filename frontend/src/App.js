@@ -215,6 +215,7 @@ function App() {
               onNavigatePath={handleNavigatePath}
               activeProfile={activeProfile}
               onLogout={handleLogout}
+              onProfileSelect={handleProfileSelect}
             />
 
             <main className="flex-1 p-6 overflow-auto">
@@ -244,6 +245,8 @@ function App() {
                 <Route path="/settings" element={
                   <Settings
                     activeProfile={activeProfile}
+                    onProfileSelect={handleProfileSelect}
+                    onProfilesChange={checkInitialProfile}
                     onProfileBucketsUpdate={(list) => {
                       const updated = list.map(name => ({
                         name,

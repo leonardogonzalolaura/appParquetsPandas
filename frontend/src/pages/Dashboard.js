@@ -46,11 +46,11 @@ const Dashboard = ({ buckets = [], stats = {}, onBucketSelect }) => {
             <p className="text-2xl font-bold text-gray-900 dark:text-white leading-tight">
               {stats.totalBuckets || 0}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Buckets configurados</p>
             <p className="text-xs text-gray-400 flex items-center mt-0.5">
               <TbBrandAws className="w-3 h-3 mr-1" />
-              Leídos desde .env
+              Buckets configurados
             </p>
+
           </div>
         </div>
 
@@ -82,11 +82,11 @@ const Dashboard = ({ buckets = [], stats = {}, onBucketSelect }) => {
             <p className="text-2xl font-bold text-gray-900 dark:text-white leading-tight">
               Activo
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Estado del backend</p>
             <p className="text-xs text-gray-400 flex items-center mt-0.5">
               <FiHardDrive className="w-3 h-3 mr-1" />
-              localhost:8000
+              Estado del backend
             </p>
+
           </div>
         </div>
       </div>
@@ -96,13 +96,6 @@ const Dashboard = ({ buckets = [], stats = {}, onBucketSelect }) => {
         <div className="flex items-center justify-between mb-3">
           <div>
             <h2 className="text-base font-semibold text-gray-900 dark:text-white">Buckets S3</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Variable{" "}
-              <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded text-xs">
-                S3_PREDEFINED_BUCKETS
-              </code>{" "}
-              en <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded text-xs">backend/.env</code>
-            </p>
           </div>
           <button
             onClick={() => navigate("/explorer")}
