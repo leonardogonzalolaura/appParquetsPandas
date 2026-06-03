@@ -36,19 +36,35 @@ const FileList = ({
   setShowCopyModal,
   handleDownload, // Optional pass if we implement individual download
 }) => {
+  const handleDownloadDirect = async (file) => {
+    try {
+      const response = await fetch(
+        `/download?bucket=${encodeURIComponent(selectedBucket)}&key=${encodeURIComponent(file.key)}`
+      );
+      if (!response.ok) throw new Error("Error en la descarga");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = file.name;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Error descargando:", err);
+      alert("Error al descargar el archivo");
+    }
+  };
+
   const renderEmptyState = () => (
     <div className="text-center py-12">
       <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-2xl flex items-center justify-center">
         <TbFileDatabase className="w-10 h-10 text-gray-400 dark:text-gray-600" />
       </div>
       <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">
-        No hay archivos compatibles
+        No hay archivos en esta carpeta
       </h3>
       <p className="text-xs text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-        Esta carpeta no contiene archivos compatibles con la vista previa
-      </p>
-      <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-2">
-        Formatos soportados: .parquet, .csv, .json, .txt
+        Esta carpeta está vacía
       </p>
     </div>
   );
@@ -126,9 +142,15 @@ const FileList = ({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleViewFile(file);
+                  if (file.previewable) handleViewFile(file);
                 }}
-                className="flex-1 px-2 py-1.5 text-[11px] font-medium rounded-lg bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-900/40 transition-all duration-200 flex items-center justify-center"
+                disabled={!file.previewable}
+                className={`flex-1 px-2 py-1.5 text-[11px] font-medium rounded-lg transition-all duration-200 flex items-center justify-center ${
+                  file.previewable
+                    ? "bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-900/40"
+                    : "bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                }`}
+                title={!file.previewable ? "Vista previa no disponible para este formato" : ""}
               >
                 <FiEye className="w-3 h-3 mr-1" />
                 Ver
@@ -147,6 +169,16 @@ const FileList = ({
               >
                 <FiCopy className="w-3 h-3 mr-1" />
                 Copiar
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDownloadDirect(file);
+                }}
+                className="flex-1 px-2 py-1.5 text-[11px] font-medium rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200 flex items-center justify-center"
+              >
+                <FiDownload className="w-3 h-3 mr-1" />
+                Descargar
               </button>
             </div>
           </div>
@@ -232,10 +264,15 @@ const FileList = ({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleViewFile(file);
+                        if (file.previewable) handleViewFile(file);
                       }}
-                      className="p-1.5 rounded-lg text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all duration-200"
-                      title="Ver detalles"
+                      disabled={!file.previewable}
+                      className={`p-1.5 rounded-lg transition-all duration-200 ${
+                        file.previewable
+                          ? "text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20"
+                          : "text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                      }`}
+                      title={file.previewable ? "Ver detalles" : "Vista previa no disponible"}
                     >
                       <FiEye className="w-3.5 h-3.5" />
                     </button>
@@ -254,18 +291,16 @@ const FileList = ({
                     >
                       <FiCopy className="w-3.5 h-3.5" />
                     </button>
-                    {handleDownload && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDownload(file);
-                        }}
-                        className="p-1.5 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
-                        title="Descargar"
-                      >
-                        <FiDownload className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownloadDirect(file);
+                      }}
+                      className="p-1.5 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
+                      title="Descargar archivo"
+                    >
+                      <FiDownload className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </td>
               </tr>

@@ -87,6 +87,7 @@ pub struct FileItem {
     pub size_mb: f64,
     pub last_modified: String,
     pub r#type: String,
+    pub previewable: bool,
 }
 
 #[derive(Debug, Serialize)]

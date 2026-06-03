@@ -88,7 +88,7 @@ async fn main() -> std::io::Result<()> {
             .service(handlers::explore::explore_bucket)
             .service(handlers::metadata::get_file_metadata)
             .service(handlers::data::get_file_data)
-            .service(handlers::download::download_parquet)
+            .service(handlers::download::download_file)
             .service(handlers::search::search_parquet_files)
             .service(handlers::copy::copy_s3_object)
             .service(handlers::copy::bulk_copy_s3_objects)

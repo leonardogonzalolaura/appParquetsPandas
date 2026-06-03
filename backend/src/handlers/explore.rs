@@ -67,34 +67,31 @@ pub async fn explore_bucket(
     }
     
     // Procesar archivos
+    let previewable_extensions = [".parquet", ".csv", ".json", ".txt"];
     for obj in response.contents() {
-    let key = obj.key().unwrap_or("");
-    
-    if key.ends_with('/') {
-        continue;
-    }
-    
-    let supported_extensions = [".parquet", ".csv", ".json", ".txt"];
-    let lower_key = key.to_lowercase();
-    let is_supported = supported_extensions.iter().any(|ext| lower_key.ends_with(ext));
-    
-    if is_supported {
+        let key = obj.key().unwrap_or("");
+
+        if key.ends_with('/') {
+            continue;
+        }
+
+        let lower_key = key.to_lowercase();
+        let previewable = previewable_extensions.iter().any(|ext| lower_key.ends_with(ext));
         let file_name = key.split('/').last().unwrap_or("");
-        let size = obj.size();  // Esto es Option<i64>
-        let size_value = size.unwrap_or(0);  // ✅ Extraer el valor o usar 0
-        
+        let size_value = obj.size().unwrap_or(0);
+
         files.push(FileItem {
             name: file_name.to_string(),
             key: key.to_string(),
-            size: size_value,  // ✅ Ahora es i64
-            size_mb: size_value as f64 / (1024.0 * 1024.0),  // ✅ Convertir correctamente
+            size: size_value,
+            size_mb: size_value as f64 / (1024.0 * 1024.0),
             last_modified: obj.last_modified()
                 .map(|t| t.to_string())
                 .unwrap_or_else(|| "unknown".to_string()),
             r#type: "file".to_string(),
+            previewable,
         });
     }
-}
     
     // Calcular ruta padre
     let parent_path = if normalized_path.is_empty() {
