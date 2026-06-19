@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 //import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
@@ -48,8 +48,7 @@ const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNaviga
 
   useEffect(() => {
     loadBuckets();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadBuckets]);
 
   useEffect(() => {
     if (selectedBucket) {
@@ -64,7 +63,7 @@ const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNaviga
     }
   }, [navigatePath, selectedBucket, onNavigatePathDone]);
 
-  const loadBuckets = async () => {
+  const loadBuckets = useCallback(async () => {
     if (propBuckets && propBuckets.length > 0) return;
     setLoading(true);
     try {
@@ -76,7 +75,7 @@ const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNaviga
     } finally {
       setLoading(false);
     }
-  };
+  }, [propBuckets]);
 
   const explorePath = async (bucket, path = "") => {
     setLoading(true);
