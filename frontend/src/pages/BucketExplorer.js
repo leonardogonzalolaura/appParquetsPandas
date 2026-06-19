@@ -46,6 +46,20 @@ const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNaviga
     }
   }, [propBuckets]);
 
+  const loadBuckets = useCallback(async () => {
+    if (propBuckets && propBuckets.length > 0) return;
+    setLoading(true);
+    try {
+      const response = await axios.get("/buckets");
+      setBuckets(response.data);
+      setExpandedBuckets(response.data.map((b) => b.name));
+    } catch (error) {
+      console.error("Error loading buckets:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [propBuckets]);
+
   useEffect(() => {
     loadBuckets();
   }, [loadBuckets]);
@@ -62,20 +76,6 @@ const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNaviga
       if (onNavigatePathDone) onNavigatePathDone();
     }
   }, [navigatePath, selectedBucket, onNavigatePathDone]);
-
-  const loadBuckets = useCallback(async () => {
-    if (propBuckets && propBuckets.length > 0) return;
-    setLoading(true);
-    try {
-      const response = await axios.get("/buckets");
-      setBuckets(response.data);
-      setExpandedBuckets(response.data.map((b) => b.name));
-    } catch (error) {
-      console.error("Error loading buckets:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [propBuckets]);
 
   const explorePath = async (bucket, path = "") => {
     setLoading(true);
