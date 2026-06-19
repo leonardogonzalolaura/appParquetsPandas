@@ -27,6 +27,7 @@ polars = { version = "0.45", features = [
     "strings",
     "regex",
     "json",
+    "csv",
     "temporal",
     "dtype-full",
     "dtype-time",

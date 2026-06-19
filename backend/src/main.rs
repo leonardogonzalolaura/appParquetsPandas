@@ -4,6 +4,7 @@ mod s3_client;
 mod s3_file;
 mod handlers;
 mod parquet_parser;
+mod parsers;
 mod sql_engine;
 
 use actix_cors::Cors;

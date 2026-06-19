@@ -239,6 +239,7 @@ function App() {
                       onBucketSelect={handleBucketSelect}
                       navigatePath={navigatePath}
                       onNavigatePathDone={() => setNavigatePath(null)}
+                      buckets={buckets}
                     />
                   }
                 />

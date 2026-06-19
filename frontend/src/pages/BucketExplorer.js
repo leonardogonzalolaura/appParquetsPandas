@@ -10,7 +10,7 @@ import FolderGrid from "../components/bucket-explorer/FolderGrid";
 import FileList from "../components/bucket-explorer/FileList";
 import FloatingActionBar from "../components/bucket-explorer/FloatingActionBar";
 
-const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNavigatePathDone }) => {
+const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNavigatePathDone, buckets: propBuckets }) => {
   //const navigate = useNavigate();
   const [buckets, setBuckets] = useState([]);
   const [explorationData, setExplorationData] = useState({
@@ -38,6 +38,14 @@ const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNaviga
   const [fileToCopy, setFileToCopy] = useState(null);
   const [selectedFiles, setSelectedFiles] = useState([]);
 
+  // Sincronizar buckets desde App.js (evita llamada API redundante)
+  useEffect(() => {
+    if (propBuckets && propBuckets.length > 0) {
+      setBuckets(propBuckets);
+      setExpandedBuckets(propBuckets.map(b => b.name));
+    }
+  }, [propBuckets]);
+
   useEffect(() => {
     loadBuckets();
   }, []);
@@ -56,6 +64,7 @@ const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNaviga
   }, [navigatePath, selectedBucket, onNavigatePathDone]);
 
   const loadBuckets = async () => {
+    if (propBuckets && propBuckets.length > 0) return;
     setLoading(true);
     try {
       const response = await axios.get("/buckets");
