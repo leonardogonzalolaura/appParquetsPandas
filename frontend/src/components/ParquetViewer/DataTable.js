@@ -13,7 +13,7 @@ import {
   FiSearch,
   FiX,
 } from "react-icons/fi";
-import { TbTable } from "react-icons/tb";
+import { TbTable, TbFileDatabase } from "react-icons/tb";
 
 const DataTable = ({
   data,
@@ -38,6 +38,11 @@ const DataTable = ({
   const [showColumnPicker, setShowColumnPicker] = useState(false);
   const [columnSearch, setColumnSearch] = useState("");
   const pickerRef = useRef(null);
+  // Ancho de columnas redimensionables
+  const [columnWidths, setColumnWidths] = useState({});
+  const resizingRef = useRef(null);
+  const resizeMoveRef = useRef(null);
+  const resizeEndRef = useRef(null);
 
   // Paginación local
   const [currentPage, setCurrentPage] = useState(1);
@@ -120,6 +125,15 @@ const DataTable = ({
   const COLUMN_MIN_WIDTH = 120;
   const VISIBLE_COLUMNS_COUNT = 8;
 
+  const formatFileSize = (bytes) => {
+    if (bytes == null) return '';
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    let i = 0;
+    let size = bytes;
+    while (size >= 1024 && i < units.length - 1) { size /= 1024; i++; }
+    return `${size.toFixed(1)} ${units[i]}`;
+  };
+
   // Actualizar columnas visibles basadas en las seleccionadas
   useEffect(() => {
     if (data.columns && selectedColumns) {
@@ -199,7 +213,48 @@ const DataTable = ({
     }
   };
 
+  /* ── Redimensionamiento de columnas ─────────────────────────── */
+  const handleResizeStart = (e, column) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const currentWidth = columnWidths[column] || COLUMN_MIN_WIDTH;
+    resizingRef.current = {
+      column,
+      startX: e.clientX,
+      startWidth: currentWidth,
+    };
+    resizeMoveRef.current = (ev) => {
+      const state = resizingRef.current;
+      if (!state) return;
+      const diff = ev.clientX - state.startX;
+      const newWidth = Math.max(60, state.startWidth + diff);
+      setColumnWidths(prev => ({ ...prev, [state.column]: newWidth }));
+    };
+    resizeEndRef.current = () => {
+      resizingRef.current = null;
+      document.removeEventListener('mousemove', resizeMoveRef.current);
+      document.removeEventListener('mouseup', resizeEndRef.current);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.addEventListener('mousemove', resizeMoveRef.current);
+    document.addEventListener('mouseup', resizeEndRef.current);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  };
 
+  useEffect(() => {
+    return () => {
+      if (resizeMoveRef.current) document.removeEventListener('mousemove', resizeMoveRef.current);
+      if (resizeEndRef.current) document.removeEventListener('mouseup', resizeEndRef.current);
+    };
+  }, []);
+
+  const getColumnWidth = (column) => columnWidths[column] || COLUMN_MIN_WIDTH;
+
+  const tableMinWidth = React.useMemo(() => {
+    return visibleColumns.reduce((sum, col) => sum + (columnWidths[col] || COLUMN_MIN_WIDTH), 0);
+  }, [visibleColumns, columnWidths]);
 
   // Obtener el número de columnas ocultas
   const getHiddenColumnsCount = () => {
@@ -227,6 +282,23 @@ const DataTable = ({
       >
         {/* Header con controles */}
         <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 px-3 py-2 border-b border-gray-200 dark:border-gray-700 z-20 flex flex-col gap-2">
+          {/* Cabecera con info del archivo cuando está expandido */}
+          {isExpanded && file && (
+            <div className="flex items-center gap-2 px-1 pb-2 border-b border-gray-200 dark:border-gray-700 -mt-1 mb-1">
+              <TbFileDatabase className="w-4 h-4 text-primary-600 dark:text-primary-400 flex-shrink-0" />
+              <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                {file.name}
+              </span>
+              <span className="text-gray-300 dark:text-gray-600 text-xs">·</span>
+              <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate hidden sm:inline">{file.bucket}</span>
+              {file.size && (
+                <>
+                  <span className="text-gray-300 dark:text-gray-600 text-xs hidden sm:inline">·</span>
+                  <span className="text-[11px] text-gray-500 dark:text-gray-400 hidden sm:inline">{formatFileSize(file.size)}</span>
+                </>
+              )}
+            </div>
+          )}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-3">
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -452,7 +524,7 @@ const DataTable = ({
           {/* TABLA CON ANCHO MÍNIMO BASADO EN COLUMNAS */}
           <div
             style={{
-              minWidth: `${visibleColumns.length * COLUMN_MIN_WIDTH}px`,
+              minWidth: `${tableMinWidth}px`,
             }}
           >
             <table className="w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -461,10 +533,10 @@ const DataTable = ({
                   {visibleColumns.map((column, index) => (
                     <th
                       key={index}
-                      className="px-3 py-1.5 text-left text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider group cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                      className="px-3 py-1.5 text-left text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider group cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors relative"
                       style={{
-                        minWidth: `${COLUMN_MIN_WIDTH}px`,
-                        maxWidth: `${COLUMN_MIN_WIDTH * 2}px`,
+                        width: `${getColumnWidth(column)}px`,
+                        minWidth: '60px',
                       }}
                       onClick={() => handleSort(column)}
                     >
@@ -494,6 +566,12 @@ const DataTable = ({
                           <FiEye className="w-3 h-3 text-gray-400 dark:text-gray-500" />
                         </button>
                       </div>
+                      {/* Resize handle */}
+                      <div
+                        onMouseDown={(e) => handleResizeStart(e, column)}
+                        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-primary-400 active:bg-primary-600 rounded-full transition-colors"
+                        style={{ zIndex: 1 }}
+                      />
                     </th>
                   ))}
                 </tr>
@@ -552,8 +630,8 @@ const DataTable = ({
                           key={colIndex}
                           className="px-3 py-1.5 whitespace-nowrap text-xs text-gray-900 dark:text-gray-300"
                           style={{
-                            minWidth: `${COLUMN_MIN_WIDTH}px`,
-                            maxWidth: `${COLUMN_MIN_WIDTH * 2}px`,
+                            width: `${getColumnWidth(column)}px`,
+                            minWidth: '60px',
                           }}
                         >
                           <div className="truncate" title={String(row[column])}>
