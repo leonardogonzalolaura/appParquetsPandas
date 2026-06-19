@@ -48,6 +48,7 @@ const BucketExplorer = ({ selectedBucket, onBucketSelect, navigatePath, onNaviga
 
   useEffect(() => {
     loadBuckets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
